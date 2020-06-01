@@ -23,11 +23,11 @@ VL53L0X sensor2;
 //=========================================================
 char auth[] = "mcJxlsL7QpjgwQ6Rr-OGJVhbWw9jWiSp";
 #define DEVICE_NAME "ByRumiCar"
-int16_t Joy_X;
-int16_t Joy_Y;
+int16_t Joy_X = 0;
+int16_t Joy_Y = 0;
 int16_t AutoPilot = 1;
-int16_t Trim;
-int16_t Max_Speed;
+int16_t Trim = 0;
+int16_t Max_Speed = 120;
 WidgetLCD lcd(V3);
 //=========================================================
 //  Arduino setup function
@@ -71,16 +71,18 @@ void auto_pilot()
     sI = iBuf >> 8;                               // I項
     sDrive = sP + sI;                             // 指令値
 //    constrain(sDrive,-255,255);                 // Limit
-    sDrive = constrain(sDrive,-50, 50);                   // Limit
+//    sDrive = constrain(sDrive,-255, 255);                   // Limit
 //    sDrive = sP;
     if ( dDist > 5 ){                             // Direction
-      RC_drive(FORWARD,(sDrive + K_OFF));
+      sDrive = constrain( sDrive + K_OFF, 0, Max_Speed);
+      RC_drive(FORWARD, sDrive);
     }else if (dDist < -5){
-      RC_drive(REVERSE,((-sDrive) + K_OFF));
-      }else{                                      // +-5mm 以内は停止
-        RC_drive(BRAKE,ispeed);                   // Brake
-        iBuf = 0;                                 // 積分クリア
-      }
+      sDrive = constrain(-sDrive + K_OFF, 0, Max_Speed);
+      RC_drive(REVERSE, sDrive);
+    }else{                                      // +-5mm 以内は停止
+      RC_drive(BRAKE,ispeed);                   // Brake
+      iBuf = 0;                                 // 積分クリア
+    }
   }else{
       RC_drive(FREE,ispeed);                      // Free
       iBuf = 0;                                   // 積分クリア
@@ -94,8 +96,8 @@ void auto_pilot()
   if (s2 > 250) s2 = 250;
   else if (s2 < 50) s2 = 50;
   dAngle = (s0 - s2) / 2;
-  Serial.print("dAngle : ");
-  Serial.println(dAngle);
+//  Serial.print("dAngle : ");
+//  Serial.println(dAngle);
   if (dAngle > 10) RC_steer(LEFT, abs(dAngle));
   else if (dAngle < -10) RC_steer(RIGHT, abs(dAngle));  
   else RC_steer(CENTER);
