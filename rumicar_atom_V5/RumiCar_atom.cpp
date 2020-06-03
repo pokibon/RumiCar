@@ -35,8 +35,8 @@ int BIN2 = 25;
 #ifdef SERVO
 int SERVO_PIN = 21;
 Servo Steer_servo;  // create servo object to control a servo
-#define SERVO_TRIM 7
-#define SERVO_LEFT 70
+#define SERVO_TRIM 12
+#define SERVO_LEFT 60
 #define SERVO_RIGHT 120
 #define SERVO_CENTER 90
 #else
