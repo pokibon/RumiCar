@@ -28,6 +28,7 @@ void setup()
   delay(150);
   Wire.begin(32, 26);
   Wire.setClock(400000); // use 400 kHz I2C
+  
   //seonsor0  
   pinMode(SHUT0, INPUT);
   delay(150);
@@ -40,7 +41,8 @@ void setup()
   sensor0.setAddress((uint8_t)20); // 20
   sensor0.setTimeout(500);      // 500   
   sensor0.setDistanceMode(VL53L1X::Long);
-  sensor0.setMeasurementTimingBudget(50000);    
+  sensor0.setMeasurementTimingBudget(20000); 
+  
   //seonsor1
   pinMode(SHUT1, INPUT);
   delay(150);
@@ -53,7 +55,8 @@ void setup()
   sensor1.setAddress((uint8_t)21);
   sensor1.setTimeout(500);
   sensor1.setDistanceMode(VL53L1X::Long);
-  sensor1.setMeasurementTimingBudget(50000);
+  sensor1.setMeasurementTimingBudget(20000);
+  
   //seonsor2
   pinMode(SHUT2, INPUT);
   delay(150);
@@ -66,7 +69,7 @@ void setup()
   sensor2.setAddress((uint8_t)22);
   sensor2.setTimeout(500);
   sensor2.setDistanceMode(VL53L1X::Long);
-  sensor2.setMeasurementTimingBudget(50000); 
+  sensor2.setMeasurementTimingBudget(20000); 
   
   sensor0.startContinuous(50);
   sensor1.startContinuous(50);
