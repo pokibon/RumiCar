@@ -25,38 +25,18 @@ void setup()
 int iBuf = 0;
 void loop()
 {
-int ibound =250;
-int s0, s1, s2;
-s0=sensor0.readRangeSingleMillimeters();
-s1=sensor1.readRangeSingleMillimeters();
-s2=sensor2.readRangeSingleMillimeters();
-
-if(s1<100){
-  RC_drive(REVERSE,150);
-}else if (s1<150){
-  RC_drive(FORWARD,150);
-}else if (s1<250){
-  RC_drive(FORWARD,200);
+int ispeed = 180;
+int idist1;
+idist1=sensor1.readRangeSingleMillimeters();
+if ( idist1 < 300 ){
+  if ( idist1 > 120 ){
+    RC_drive(FORWARD,ispeed);
+  }else if (idist1 < 80){
+    RC_drive(REVERSE,ispeed);;
+    }else{
+    RC_drive(BRAKE,ispeed);  
+    }
 }else{
-  RC_drive(FORWARD,255);
-}
-  //=========================================================
-  //  steer  
-  //=========================================================
-  int dAngle;
-  if   (s0 > 250) s0 = 250;
-  else if (s0 < 50) s0 = 50;
-  if (s2 > 250) s2 = 250;
-  else if (s2 < 50) s2 = 50;
-  dAngle = (s0 - s2) / 2;
-  if (dAngle > 10) RC_steer(LEFT, abs(dAngle));
-  else if (dAngle < -10) RC_steer(RIGHT, abs(dAngle));  
-  else RC_steer(CENTER);
-/*
- if(s0>s2){
-  RC_steer(LEFT);
-  }else{
-    RC_steer(RIGHT);
+    RC_drive(FREE,ispeed);  
   }
-*/
 }
