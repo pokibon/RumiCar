@@ -22,6 +22,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import sys
+sys.path.append('..')
+
 import time
 import pigpio
 import VL53L0X
@@ -67,7 +70,36 @@ pi.set_mode(SHDN2, pigpio.OUTPUT)
 pi.set_PWM_frequency(AIN1, AIN_FREQUENCY)
 pi.set_PWM_frequency(AIN2, AIN_FREQUENCY)
 
-def read_all_sensors():
+def rc_drive(direc, ipwm):
+    if direc == FREE:
+        pi.hardware_PWM(BIN1, BIN_FREQUENCY, 0)
+        pi.hardware_PWM(BIN2, BIN_FREQUENCY, 0)
+    elif direc == REVERSE:
+        pi.hardware_PWM(BIN1, BIN_FREQUENCY, 0)
+        pi.hardware_PWM(BIN2, BIN_FREQUENCY, ipwm)
+    elif direc == FORWARD:
+        pi.hardware_PWM(BIN1, BIN_FREQUENCY, ipwm)
+        pi.hardware_PWM(BIN2, BIN_FREQUENCY, 0)
+    elif direc == BRAKE:
+        pi.hardware_PWM(BIN1, BIN_FREQUENCY, ipwm)
+        pi.hardware_PWM(BIN2, BIN_FREQUENCY, ipwm)
+    else:
+        return 0
+
+def rc_steer(direc):
+    if direc == RIGHT:
+        pi.set_PWM_dutycycle(AIN1, 255) # PWM off
+        pi.set_PWM_dutycycle(AIN2, 0)
+    elif direc == LEFT:
+        pi.set_PWM_dutycycle(AIN1, 0)
+        pi.set_PWM_dutycycle(AIN2, 255)
+    elif direc == CENTER:
+        pi.set_PWM_dutycycle(AIN1, 0)
+        pi.set_PWM_dutycycle(AIN2, 0)
+    else:
+        return 0
+
+if __name__ == "__main__":
 
     # Set all shutdown pins low to turn off each VL53L0X
     pi.write(SHDN0, 0)
@@ -103,102 +135,39 @@ def read_all_sensors():
     # call to start ranging 
     sensor2.start_ranging(VL53L0X.VL53L0X_HIGH_SPEED_MODE)
 
-    timing = sensor0.get_timing()
-    if (timing < 20000):
-      timing = 20000
-    print ("Timing %d ms" % (timing/1000))
-
-    for count in range(1,101):
-      distance = sensor0.get_distance()
-      if (distance > 0):
-          print ("sensor %d - %d mm" % (sensor0.my_object_number, distance))
-      else:
-          print ("%d - Error" % sensor0.my_object_number)
-
-    distance = sensor1.get_distance()
-    if (distance > 0):
-        print ("sensor %d - %d mm" % (sensor1.my_object_number, distance))
-    else:
-        print ("%d - Error" % sensor1.my_object_number)
-
-    distance = sensor2.get_distance()
-    if (distance > 0):
-        print ("sensor %d - %d mm" % (sensor2.my_object_number, distance))
-    else:
-        print ("%d - Error" % sensor2.my_object_number)
-
-    time.sleep(timing/1000000.00)
-
-    sensor0.stop_ranging()
-    pi.write(SHDN0, 0)
-    sensor1.stop_ranging()
-    pi.write(SHDN1, 0)
-    sensor2.stop_ranging()
-    pi.write(SHDN2, 0)
-
-def readOneSensor():
-
-    # Set all shutdown pins low to turn off each VL53L0X
-    pi.write(SHDN1, 0)
-
-    # Keep all low for 500 ms or so to make sure they reset
-    time.sleep(0.50)
-
-    # Create one object per VL53L0X
-    sensor1 = VL53L0X.VL53L0X(address=0x2D)
-
-    # set SHDN1 to input in order to use VL53L0X's pull-up resistor
-    pi.set_mode(SHDN1, pigpio.INPUT)
-    time.sleep(0.50)
-
-    # call to start ranging 
-    sensor1.start_ranging(VL53L0X.VL53L0X_HIGH_SPEED_MODE)
 
     timing = sensor1.get_timing()
     if (timing < 20000):
         timing = 20000
-    print ("Timing %d ms" % (timing/1000))
 
-    for count in range(100):
-        distance = sensor1.get_distance()
-        if (distance > 0):
-            print ("sensor %d - %d mm" % (sensor1.my_object_number, distance))
-        else:
-            print ("%d - Error" % sensor1.my_object_number)
+    while True:
+        try:
+            s0 = sensor0.get_distance()
+            s1 = sensor1.get_distance()
+            s2 = sensor2.get_distance()
 
-    sensor1.stop_ranging()
-    pi.write(SHDN0, 0)
+            if s1 < 100:
+                rc_drive(REVERSE, 700000);
+            elif s1 < 150:
+                rc_drive(FORWARD, 500000);
+            elif s1 < 250:
+                rc_drive(FORWARD, 800000);
+            else:
+                rc_drive(FORWARD, 900000);
 
-def rc_drive(direc, ipwm):
-    if direc == FREE:
-        pi.hardware_PWM(BIN1, BIN_FREQUENCY, 0)
-        pi.hardware_PWM(BIN2, BIN_FREQUENCY, 0)
-    elif direc == REVERSE:
-        pi.hardware_PWM(BIN1, BIN_FREQUENCY, 0)
-        pi.hardware_PWM(BIN2, BIN_FREQUENCY, ipwm)
-    elif direc == FORWARD:
-        pi.hardware_PWM(BIN1, BIN_FREQUENCY, ipwm)
-        pi.hardware_PWM(BIN2, BIN_FREQUENCY, 0)
-    elif direc == BRAKE:
-        pi.hardware_PWM(BIN1, BIN_FREQUENCY, ipwm)
-        pi.hardware_PWM(BIN2, BIN_FREQUENCY, ipwm)
-    else:
-        return 0
-
-def rc_steer(direc):
-    if direc == RIGHT:
-        pi.set_PWM_dutycycle(AIN1, 255) # PWM off
-        pi.set_PWM_dutycycle(AIN2, 0)
-    elif direc == LEFT:
-        pi.set_PWM_dutycycle(AIN1, 0)
-        pi.set_PWM_dutycycle(AIN2, 255)
-    elif direc == CENTER:
-        pi.set_PWM_dutycycle(AIN1, 0)
-        pi.set_PWM_dutycycle(AIN2, 0)
-    else:
-        return 0
-
-def rc_clear():
-    pi.set_mode(BIN1, pigpio.INPUT)
-    pi.set_mode(BIN2, pigpio.INPUT)
-    pi.stop()
+            if s0 > s2:
+                rc_steer(LEFT);
+            else:
+                rc_steer(RIGHT);
+            
+            time.sleep(timing/1000000.00)
+        except KeyboardInterrupt:
+            sensor0.stop_ranging()
+            pi.write(SHDN0, 0)
+            sensor1.stop_ranging()
+            pi.write(SHDN1, 0)
+            sensor2.stop_ranging()
+            pi.write(SHDN2, 0)
+            pi.set_mode(BIN1, pigpio.INPUT)
+            pi.set_mode(BIN2, pigpio.INPUT)
+            pi.stop()
