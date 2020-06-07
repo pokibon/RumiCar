@@ -1,13 +1,27 @@
 //=========================================================
 //  RumiCar.cpp :  RumiCar Library for M5.Atom 
 //  History     : V0.0  2020-05-29 New Create(K.Ohe)
+//                V0.1  2020-06-07 Timer task
 //=========================================================
 #include "M5Atom.h"
 #include <ESP32Servo.h>
+#include "ESP32TimerInterrupt.h"
 #define EXTERN
 #ifndef RUMICAR_ATOM_H 
 #include "RumiCar_atom.h"
 #endif
+
+// Private Variable for timmer task
+#define   UP_SPEED      (200)       // StartUP speed
+#define   UP_TIME       (3)         // 30[ms]
+#define TIMER0_INTERVAL_MS        10
+ESP32Timer Timer1(1);
+
+volatile  int s_speed = 0;
+volatile  int s_gear = FREE;
+volatile  int s_steer = CENTER;
+volatile  int s_steera = 255;
+volatile  int s_sptim = 0;
 
 //=========================================================
 //  Image Size: width=45,height=5
@@ -47,6 +61,17 @@ Servo Steer_servo;  // create servo object to control a servo
 int AIN1 = 19;      // common with SHUT0
 int AIN2 = 21;
 #endif
+//=========================================================
+// RC_delay:PWM 周波数変更しているためTimer0を調整
+//=========================================================
+void RC_delay(unsigned long tim)
+{
+#if defined ESP32
+  delay(tim);
+#else
+  delay(tim / 4);
+#endif
+}
 
 //=========================================================
 //  RC_setup    :  RumiCar setup function
@@ -124,8 +149,8 @@ void RC_setup()
   RC_analogWrite(BIN1, 0);
   RC_analogWrite(BIN2, 0);
 #ifndef SERVO
-  ledcSetup(0, 240, PWM_level);  // 490
-  ledcSetup(1, 240, PWM_level);  // 490
+  ledcSetup(0, 490, PWM_level);  // 490
+  ledcSetup(1, 490, PWM_level);  // 490
   ledcAttachPin(AIN1, 0);
   ledcAttachPin(AIN2, 1);
   AIN1 = 0;
@@ -136,6 +161,12 @@ void RC_setup()
   Steer_servo.setPeriodHertz(50);           // standard 50 hz servo
   Steer_servo.attach(SERVO_PIN, 500, 2500);  // attaches the servo on pin 25 to the servo object
 #endif
+  //----  Timer task start
+  // Interval in microsecs
+  if (Timer1.attachInterruptInterval(TIMER0_INTERVAL_MS * 1000, RC_run))
+    Serial.println("Starting  ITimer1 OK, millis() = " + String(millis()));
+  else
+    Serial.println("Can't set ITimer1. Select another freq. or timer");
 }
 
 //=========================================================
@@ -191,20 +222,59 @@ int RC_steer (int direc, int angle )
 //    ipwm      :  0 - 255
 //=========================================================
 int RC_drive(int direc, int ipwm){
-  myDispLed.y = direc;
-  myDispLed.show();             // Display LED
-  if ( direc == FREE ){
-    RC_analogWrite(BIN1,0);
-    RC_analogWrite(BIN2,0);
-  }else if ( direc == REVERSE ){
-    RC_analogWrite(BIN1,0);
-    RC_analogWrite(BIN2,ipwm);
-  }else if ( direc == FORWARD ){
-    RC_analogWrite(BIN1,ipwm);
-    RC_analogWrite(BIN2,0);
-  }else if ( direc == BRAKE ){
-    RC_analogWrite(BIN1,ipwm);
-    RC_analogWrite(BIN2,ipwm);
+  //-- StartUP check
+  if((s_speed == 0) ||
+    (s_gear == FREE) ||
+    (s_gear == BRAKE))
+  {
+      s_sptim = UP_TIME;
   }
-  return 0;
+  //-- No need StartUP
+  if(ipwm > UP_SPEED){
+      s_sptim = 0;   
+  }
+  // Save
+  s_speed = ipwm;
+  s_gear = direc;
+#ifdef ATOM_MATRIX
+  myDispLed.y = direc;
+  myDispLed.show();
+#endif
+}
+
+//=========================================================
+//  RC_drive    :  drive control function
+//    direc     :  derection
+//    ipwm      :  0 - 255
+//=========================================================
+void IRAM_ATTR RC_run(void) 
+{
+  if ( s_gear == FREE ){
+    RC_analogWrite(BIN1,0);
+    RC_analogWrite(BIN2,0);
+  }else if ( s_gear == REVERSE ){
+    if(s_sptim == 0){
+      RC_analogWrite(BIN1,0);
+      RC_analogWrite(BIN2,s_speed);
+    }else{
+      RC_analogWrite(BIN1,0);
+      RC_analogWrite(BIN2,UP_SPEED);
+    }
+  }else if ( s_gear == FORWARD ){
+    if(s_sptim == 0){
+      RC_analogWrite(BIN1,s_speed);
+      RC_analogWrite(BIN2,0);
+    }else{
+      RC_analogWrite(BIN1,UP_SPEED);
+      RC_analogWrite(BIN2,0);
+    }
+  }else if ( s_gear == BRAKE ){
+    RC_analogWrite(BIN1,s_speed);
+    RC_analogWrite(BIN2,s_speed);
+  }
+//--  Timer
+  if(s_sptim != 0){ 
+    s_sptim --; 
+  }
+  return;
 }

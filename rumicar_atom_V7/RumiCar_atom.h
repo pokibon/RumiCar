@@ -4,7 +4,7 @@
 //=========================================================
 #define RUMICAR_H
 #define SENSOR_VL53L1X
-#define ATOM_MATRIX
+//#define ATOM_MATRIX
 //#define ALGYAN_ESP32
 
 #ifdef SENSOR_VL53L1X
@@ -38,6 +38,8 @@
 EXTERN void RC_setup(void);
 EXTERN int  RC_steer(int  direc, int angle = 50);
 EXTERN int  RC_drive(int, int);
+EXTERN void RC_delay(unsigned long tim);
+EXTERN void RC_run(void);
 
 // TOF Sensor definition
 #ifdef SENSOR_VL53L1X
