@@ -6,6 +6,7 @@
 #include "M5Atom.h"
 #include <ESP32Servo.h>
 //#include "ESP32TimerInterrupt.h"
+#include <Ticker.h>
 #define EXTERN
 #ifndef RUMICAR_ATOM_H 
 #include "RumiCar_atom.h"
@@ -13,10 +14,12 @@
 
 // Private Variable for timmer task
 #define   UP_SPEED      (200)       // StartUP speed
-#define   UP_TIME       (3)         // 30[ms]
-#define TIMER0_INTERVAL_MS        10
-hw_timer_t *Timer1 = NULL;
-portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
+#define   UP_TIME       (5)         // 50[ms]
+//#define TIMER0_INTERVAL_MS        10
+//hw_timer_t *Timer1 = NULL;
+//portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
+float timer_interval = 0.01;  //seconds
+Ticker Timer1;
 
 volatile  int s_speed = 0;
 volatile  int s_gear = FREE;
@@ -56,7 +59,7 @@ int SERVO_PIN = 21;
 Servo Steer_servo;  // create servo object to control a servo
 #define SERVO_TRIM 12
 #define SERVO_LEFT 60
-#define SERVO_RIGHT 120
+#define SERVO_RIGHT 130
 #define SERVO_CENTER 90
 #else
 int AIN1 = 19;      // common with SHUT0
@@ -164,10 +167,11 @@ void RC_setup()
 #endif
   //----  Timer task start
   // Interval in microsecs
-  Timer1 = timerBegin(0, 80, true); //timer=1us
-  timerAttachInterrupt(Timer1, RC_run, true);
-  timerAlarmWrite(Timer1, TIMER0_INTERVAL_MS * 1000, true); // 30ms
-  timerAlarmEnable(Timer1);
+//  Timer1 = timerBegin(0, 80, true); //timer=1us
+//  timerAttachInterrupt(Timer1, RC_run, true);
+//  timerAlarmWrite(Timer1, TIMER0_INTERVAL_MS * 1000, true); // 30ms
+//  timerAlarmEnable(Timer1);
+  Timer1.attach(timer_interval, RC_run);
 }
 
 //=========================================================
@@ -228,15 +232,11 @@ int RC_drive(int direc, int ipwm){
     (s_gear == FREE) ||
     (s_gear == BRAKE))
   {
-      portENTER_CRITICAL_ISR(&timerMux);
       s_sptim = UP_TIME;
-      portEXIT_CRITICAL_ISR(&timerMux);
   }
   //-- No need StartUP
   if(ipwm > UP_SPEED){
-      portENTER_CRITICAL_ISR(&timerMux);
-      s_sptim = 0;   
-      portEXIT_CRITICAL_ISR(&timerMux);
+      s_sptim = 0;
   }
   // Save
   s_speed = ipwm;
@@ -253,12 +253,8 @@ int RC_drive(int direc, int ipwm){
 //    ipwm      :  0 - 255
 //=========================================================
 
-void IRAM_ATTR RC_run(void) 
+void RC_run(void) 
 {
-    RC_analogWrite(BIN1,0);
-    RC_analogWrite(BIN2,0);
-/*
-  portENTER_CRITICAL_ISR(&timerMux);
   if ( s_gear == FREE ){
     RC_analogWrite(BIN1,0);
     RC_analogWrite(BIN2,0);
@@ -286,6 +282,4 @@ void IRAM_ATTR RC_run(void)
   if(s_sptim != 0){ 
     s_sptim --; 
   }
-  portEXIT_CRITICAL_ISR(&timerMux);
-*/
 }

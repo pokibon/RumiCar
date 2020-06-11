@@ -1,8 +1,9 @@
 //=========================================================
-//  rumicar_atom_V6.ino :  RumiCar application 
-//  History     : V6.0  2020-06-05 New Create(K.Ohe)
-//                  Support Bylnk Remoto Control
-//                  Support VL53L1X distance sensor
+//  rumicar_atom_V8.ino :  RumiCar application 
+//  History     : V8.0  2020-06-11 New Create(K.Ohe)
+//                      Support Bylnk Remoto Control
+//                      Support VL53L1X distance sensor
+//                      Support reverse steering
 //=========================================================
 #define USE_BLYNK
 #ifdef USE_BLYNK
@@ -54,62 +55,59 @@ void setup()
 #endif  
 }
 
-int s0, s1, s2;
 //=========================================================
 //  auto pilot function
 //=========================================================
+#define MAX_SPEED 1.0
+#define MID_SPEED 0.8
+#define LOW_SPEED 0.6
+#define BRAKE_TIME 500
+int s0, s1, s2;
+int CurDir = BRAKE;         // current direction
+int LastDir = BRAKE;        // last direction
+int sTime, eTime = 0;        //
 int iBuf = 0;
 void auto_pilot()
 {
-  int ispeed = 255;
-  int idist1;
-  int sDist = 150;
-  int K_OFF = 50;    // original 64
-  int KP = 200;
-  int KI = 20;
-  int sP;
-  long sI;
-  int sDrive;
-  int dDist;  
-
   //=========================================================
   //  drive  
   //=========================================================
-  if(s1<100){
-    RC_drive(REVERSE,Max_Speed * 0.7);
-  }else if (s1<150){
-    RC_drive(FORWARD,Max_Speed * 0.7);
-  }else if (s1<250){
-    RC_drive(FORWARD,Max_Speed);
-  }else{
-    RC_drive(FORWARD,Max_Speed);
-  }
-  idist1 = s1;
-  dDist = idist1 - sDist;                         // 差分
-/*
-  if ( idist1 < 1500 ){                           // 150cm 以内のみ動作
-    sP = (dDist * KP) / 100;                      // P項
-    iBuf += (sP * KI);                            // 積分
-    sI = iBuf >> 8;                               // I項
-    sDrive = sP + sI;                             // 指令値
-//    constrain(sDrive,-255,255);                 // Limit
-//    sDrive = constrain(sDrive,-255, 255);                   // Limit
-//    sDrive = sP;
-    if ( dDist > 5 ){                             // Direction
-      sDrive = constrain( sDrive + K_OFF, 0, Max_Speed);
-      RC_drive(FORWARD, sDrive);
-    }else if (dDist < -5){
-      sDrive = constrain(-sDrive + K_OFF, 0, Max_Speed);
-      RC_drive(REVERSE, sDrive);
-    }else{                                      // +-5mm 以内は停止
-      RC_drive(BRAKE,ispeed);                   // Brake
-      iBuf = 0;                                 // 積分クリア
+  if(s1 < 100){
+    CurDir = REVERSE;
+    RC_drive(CurDir, Max_Speed * MAX_SPEED);
+  }else {
+    if (s1 > 250) {
+      CurDir = FORWARD;
+      RC_drive(CurDir, Max_Speed * MAX_SPEED);
+    } else {
+      CurDir = FORWARD;
+      if (s1 > 150) {
+        RC_drive(CurDir, Max_Speed * MID_SPEED);
+      }else {
+        RC_drive(CurDir, Max_Speed * LOW_SPEED);
+      }
     }
-  }else{
-      RC_drive(FREE,ispeed);                      // Free
-      iBuf = 0;                                   // 積分クリア
   }
-*/
+  if (LastDir != FORWARD && CurDir == FORWARD) {
+    sTime = millis();
+    eTime = 0;
+//    Serial.print("REVERSE to FORWARD : ");
+//    Serial.println(eTime);
+  }
+  if (LastDir == FORWARD && CurDir == FORWARD) {
+    eTime = millis() - sTime;
+    if (eTime > 10000) {
+      eTime = 10000;
+    }
+//    Serial.print("FORWARD to FORWARD : ");
+//    Serial.println(eTime);
+  }
+  if (eTime > BRAKE_TIME && CurDir == REVERSE) {
+//    Serial.print("BRAKEING           : ");
+//    Serial.println(eTime);
+    CurDir = BRAKE;      
+  }
+  LastDir = CurDir;  
   //=========================================================
   //  steer  
   //=========================================================
@@ -122,16 +120,18 @@ void auto_pilot()
 //  Serial.print("dAngle : ");
 //  Serial.println(dAngle);
   if (dAngle > 10) {
-    if (dDist >= 0) {
-      RC_steer(LEFT, abs(dAngle));
+    if (CurDir == REVERSE) {
+      RC_steer(RIGHT, abs(dAngle));
+//      Serial.println("kirikaeshi!!!");
     } else {
-      RC_steer(RIGHT, abs(dAngle));      
+      RC_steer(LEFT, abs(dAngle));      
     }
   } else if (dAngle < -10) {
-    if (dDist >= 0) {
-      RC_steer(RIGHT, abs(dAngle));  
-    } else {
+    if (CurDir == REVERSE) {
       RC_steer(LEFT, abs(dAngle));
+//      Serial.println("kirikaeshi!!!");  
+    } else {
+      RC_steer(RIGHT, abs(dAngle));
     }      
   } else {
     RC_steer(CENTER);
@@ -198,13 +198,14 @@ void loop()
   lcd.print(0,0, " LEFT CENT.RIGHT");
   lcd.print(0, 1, buf);
 #endif
+/*
   Serial.print("Sensor0:");
   Serial.print(s0);
   Serial.print("  Sensor1:");
   Serial.print(s1);
   Serial.print("  Sensor2:");
   Serial.println(s2);
-
+*/
   if (AutoPilot == 1) {
     auto_pilot();
   } else {

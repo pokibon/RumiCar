@@ -63,7 +63,7 @@ void auto_pilot()
 {
   int ispeed = 255;
   int idist1;
-  int sDist = 150;
+  int sDist = 100;
   int K_OFF = 50;    // original 64
   int KP = 200;
   int KI = 20;
@@ -76,7 +76,7 @@ void auto_pilot()
   //  drive  
   //=========================================================
   if(s1<100){
-    RC_drive(REVERSE,Max_Speed * 0.7);
+    RC_drive(REVERSE,Max_Speed);
   }else if (s1<150){
     RC_drive(FORWARD,Max_Speed * 0.7);
   }else if (s1<250){
@@ -114,11 +114,12 @@ void auto_pilot()
   //  steer  
   //=========================================================
   int dAngle;
-  if   (s0 > 250) s0 = 250;
-  else if (s0 < 50) s0 = 50;
-  if (s2 > 250) s2 = 250;
-  else if (s2 < 50) s2 = 50;
-  dAngle = (s0 - s2) / 2;
+  if   (s0 > 130) s0 = 130;
+  else if (s0 < 30) s0 = 30;
+  if (s2 > 130) s2 = 130;
+  else if (s2 < 30) s2 = 30;
+//  dAngle = (s0 - s2) / 2;
+  dAngle = (s0 - s2);
 //  Serial.print("dAngle : ");
 //  Serial.println(dAngle);
   if (dAngle > 10) {
@@ -198,13 +199,14 @@ void loop()
   lcd.print(0,0, " LEFT CENT.RIGHT");
   lcd.print(0, 1, buf);
 #endif
+/*
   Serial.print("Sensor0:");
   Serial.print(s0);
   Serial.print("  Sensor1:");
   Serial.print(s1);
   Serial.print("  Sensor2:");
   Serial.println(s2);
-
+*/
   if (AutoPilot == 1) {
     auto_pilot();
   } else {
