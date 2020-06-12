@@ -59,9 +59,9 @@ void setup()
 //  auto pilot function
 //=========================================================
 #define MAX_SPEED 1.0
-#define MID_SPEED 0.8
-#define LOW_SPEED 0.6
-#define BRAKE_TIME 500
+#define MID_SPEED 0.9
+#define LOW_SPEED 0.8
+#define BRAKE_TIME 1000
 int s0, s1, s2;
 int CurDir = BRAKE;         // current direction
 int LastDir = BRAKE;        // last direction
@@ -111,31 +111,51 @@ void auto_pilot()
   //=========================================================
   //  steer  
   //=========================================================
+  int dMin = 50;
+  int dMax = 100;
+  int steerMax = 100;
   int dAngle;
-  if   (s0 > 250) s0 = 250;
-  else if (s0 < 50) s0 = 50;
-  if (s2 > 250) s2 = 250;
-  else if (s2 < 50) s2 = 50;
-  dAngle = (s0 - s2) / 2;
-//  Serial.print("dAngle : ");
-//  Serial.println(dAngle);
-  if (dAngle > 10) {
-    if (CurDir == REVERSE) {
-      RC_steer(RIGHT, abs(dAngle));
-//      Serial.println("kirikaeshi!!!");
-    } else {
-      RC_steer(LEFT, abs(dAngle));      
-    }
-  } else if (dAngle < -10) {
-    if (CurDir == REVERSE) {
-      RC_steer(LEFT, abs(dAngle));
-//      Serial.println("kirikaeshi!!!");  
-    } else {
-      RC_steer(RIGHT, abs(dAngle));
-    }      
+  int dDir = CENTER;
+  
+  if   (s0 > dMax) s0 = dMax;
+  else if (s0 < dMin) s0 = dMin;
+  if (s2 > dMax) s2 = dMax;
+  else if (s2 < dMin) s2 = dMin;
+ 
+  if (s0 >= dMax && s2 >= dMax) {
+    dDir = CENTER;
+    dAngle = 0;
+  } else if (s0 < dMax && s2 >= dMax) {
+    dDir = RIGHT;
+    dAngle = steerMax - (s0 - dMin) * dMax/dMin; 
+  } else if (s0 >= dMax && s2 < dMax) {
+    dDir = LEFT;
+    dAngle = steerMax - (s2 - dMin) * dMax/dMin; 
   } else {
-    RC_steer(CENTER);
+    dAngle = (s0 - s2) * 2;
+    if (dAngle > 10) {
+      dDir = LEFT;
+    } else if (dAngle < -10) {
+      dDir = RIGHT;
+      dAngle = abs(dAngle);      
+    } else {
+      dDir = CENTER;
+    }
   }
+  if (CurDir == REVERSE) {
+    if (dDir == RIGHT) {
+      dDir = LEFT;
+    } else if (dDir == LEFT) {
+      dDir = RIGHT;
+    }   
+  }
+  RC_steer(dDir, dAngle);
+// /*  
+//  Serial.print("dDir : ");
+//  Serial.print(dDir);
+//  Serial.print("  dAngle : ");
+//  Serial.println(dAngle);
+// */
 }
 
 //=========================================================
