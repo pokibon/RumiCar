@@ -64,9 +64,10 @@ void setup()
 #define BRAKE_TIME 1000     // 
 #define MAX_DISTANCE 150
 #define MIN_DISTANCE 70
-#define MAX_ANGLE 80        // max 100
+#define MAX_ANGLE 60        // max 100
 int s0, s1, s2;
 int CurDir = BRAKE;         // current direction
+int CurSpeed = 0;           // current speed
 int LastDir = BRAKE;        // last direction
 int sTime, eTime = 0;       // fwd pass time
 
@@ -77,20 +78,22 @@ void auto_pilot()
   //=========================================================
   if(s1 < 100){
     CurDir = REVERSE;
-    RC_drive(CurDir, Max_Speed * MAX_SPEED);
+    CurSpeed = Max_Speed * MAX_SPEED;
   }else {
     if (s1 > 250) {
       CurDir = FORWARD;
-      RC_drive(CurDir, Max_Speed * MAX_SPEED);
+      CurSpeed = Max_Speed * MAX_SPEED;
     } else {
       CurDir = FORWARD;
       if (s1 > 150) {
-        RC_drive(CurDir, Max_Speed * MID_SPEED);
+        CurSpeed = Max_Speed * MID_SPEED;
       }else {
-        RC_drive(CurDir, Max_Speed * LOW_SPEED);
+        CurSpeed = Max_Speed * LOW_SPEED;
       }
     }
   }
+  RC_drive(CurDir, CurSpeed);
+  
   if (LastDir != FORWARD && CurDir == FORWARD) {
     sTime = millis();
     eTime = 0;
@@ -128,20 +131,23 @@ void auto_pilot()
   if (s2 > dMax) s2 = dMax;
   else if (s2 < dMin) s2 = dMin;
  
-  if (s0 >= dMax && s2 >= dMax) {
+  if (s0 >= dMax && s2 >= dMax) {         // far wall
     dDir = CENTER;
     dAngle = 0;
-  } else if (s0 < dMax && s2 >= dMax) {
+  } else if (s0 < dMax && s2 >= dMax) {   // near left wall
     dDir = RIGHT;
-    dAngle = steerMax - (s0 - dMin) * dMax/dMin; 
-  } else if (s0 >= dMax && s2 < dMax) {
+//    dAngle = steerMax - (s0 - dMin) * dMax/dMin;
+    dAngle = steerMax - (s0 - dMin) * steerMax / (dMax - dMin);
+  } else if (s0 >= dMax && s2 < dMax) {   // near right wall
     dDir = LEFT;
-    dAngle = steerMax - (s2 - dMin) * dMax/dMin; 
-  } else {
-    dAngle = (s0 - s2) * 2;
-    if (dAngle > 10) {
+//    dAngle = steerMax - (s2 - dMin) * dMax/dMin; 
+    dAngle = steerMax - (s2 - dMin) * steerMax / (dMax - dMin);
+  } else {                                // near left & right wall
+//    dAngle = (s0 - s2) * 2;
+    dAngle = (s0 - s2) * steerMax / (dMax - dMin);
+    if (dAngle > 0) {
       dDir = LEFT;
-    } else if (dAngle < -10) {
+    } else if (dAngle < 0) {
       dDir = RIGHT;
       dAngle = abs(dAngle);      
     } else {
@@ -160,16 +166,16 @@ void auto_pilot()
       } else {
         dDir = LEFT;
       }
-      dAngle = 75;
+      dAngle = steerMax;
     }
   }
   RC_steer(dDir, dAngle);
-// /*  
-//  Serial.print("dDir : ");
-//  Serial.print(dDir);
-//  Serial.print("  dAngle : ");
-//  Serial.println(dAngle);
-// */
+/*  
+  Serial.print("dDir : ");
+  Serial.print(dDir);
+  Serial.print("  dAngle : ");
+  Serial.println(dAngle);
+*/
 }
 
 //=========================================================
