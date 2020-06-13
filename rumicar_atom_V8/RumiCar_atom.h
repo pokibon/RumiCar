@@ -4,7 +4,7 @@
 //=========================================================
 #define RUMICAR_H
 #define SENSOR_VL53L1X
-//#define ATOM_MATRIX
+#define ATOM_MATRIX
 //#define ALGYAN_ESP32
 
 #ifdef SENSOR_VL53L1X

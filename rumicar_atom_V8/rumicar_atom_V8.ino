@@ -37,7 +37,7 @@ int16_t Joy_X = 0;
 int16_t Joy_Y = 0;
 int16_t AutoPilot = 1;
 int16_t Trim = 0;
-int16_t Max_Speed = 120;
+int16_t Max_Speed = 150;
 #ifdef USE_BLYNK
 WidgetLCD lcd(V3);
 #endif
@@ -58,15 +58,18 @@ void setup()
 //=========================================================
 //  auto pilot function
 //=========================================================
-#define MAX_SPEED 1.0
-#define MID_SPEED 0.9
-#define LOW_SPEED 0.8
-#define BRAKE_TIME 1000
+#define MAX_SPEED 1.0       // max speed factor
+#define MID_SPEED 0.8       // mid speed factor
+#define LOW_SPEED 1.0       // low speed need torque
+#define BRAKE_TIME 1000     // 
+#define MAX_DISTANCE 150
+#define MIN_DISTANCE 70
+#define MAX_ANGLE 80        // max 100
 int s0, s1, s2;
 int CurDir = BRAKE;         // current direction
 int LastDir = BRAKE;        // last direction
-int sTime, eTime = 0;        //
-int iBuf = 0;
+int sTime, eTime = 0;       // fwd pass time
+
 void auto_pilot()
 {
   //=========================================================
@@ -111,11 +114,14 @@ void auto_pilot()
   //=========================================================
   //  steer  
   //=========================================================
-  int dMin = 50;
-  int dMax = 100;
-  int steerMax = 100;
+  int dMin = MIN_DISTANCE;
+  int dMax = MAX_DISTANCE;
+  int steerMax = MAX_ANGLE;
   int dAngle;
   int dDir = CENTER;
+  int pos;
+
+  pos = s0 - s2;
   
   if   (s0 > dMax) s0 = dMax;
   else if (s0 < dMin) s0 = dMin;
@@ -140,6 +146,7 @@ void auto_pilot()
       dAngle = abs(dAngle);      
     } else {
       dDir = CENTER;
+      dAngle = 0;
     }
   }
   if (CurDir == REVERSE) {
@@ -147,7 +154,14 @@ void auto_pilot()
       dDir = LEFT;
     } else if (dDir == LEFT) {
       dDir = RIGHT;
-    }   
+    } else {                  // kirikaeshi
+      if (pos > 0) {
+        dDir = RIGHT;
+      } else {
+        dDir = LEFT;
+      }
+      dAngle = 75;
+    }
   }
   RC_steer(dDir, dAngle);
 // /*  
@@ -218,14 +232,14 @@ void loop()
   lcd.print(0,0, " LEFT CENT.RIGHT");
   lcd.print(0, 1, buf);
 #endif
-/*
+///*
   Serial.print("Sensor0:");
   Serial.print(s0);
   Serial.print("  Sensor1:");
   Serial.print(s1);
   Serial.print("  Sensor2:");
   Serial.println(s2);
-*/
+//*/
   if (AutoPilot == 1) {
     auto_pilot();
   } else {

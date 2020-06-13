@@ -57,9 +57,9 @@ int SERVO_PIN = 13;
 int SERVO_PIN = 21;
 #endif
 Servo Steer_servo;  // create servo object to control a servo
-#define SERVO_TRIM 12
-#define SERVO_LEFT 60
-#define SERVO_RIGHT 130
+#define SERVO_TRIM 12           // typ 12
+#define SERVO_LEFT 60           // max 60
+#define SERVO_RIGHT 130         // max 130
 #define SERVO_CENTER 90
 #else
 int AIN1 = 19;      // common with SHUT0
@@ -126,15 +126,15 @@ void RC_setup()
 
   // reduce timing budget to 20 ms (default is about 33 ms)
 #ifdef SENSOR_VL53L1X
-  sensor0.setDistanceMode(VL53L1X::Long);
-  sensor1.setDistanceMode(VL53L1X::Long);
-  sensor2.setDistanceMode(VL53L1X::Long);
-  sensor0.setMeasurementTimingBudget(33000);
-  sensor1.setMeasurementTimingBudget(33000);
-  sensor2.setMeasurementTimingBudget(33000);
-  sensor0.startContinuous(33);
-  sensor1.startContinuous(33);
-  sensor2.startContinuous(33);
+  sensor0.setDistanceMode(VL53L1X::Medium);
+  sensor1.setDistanceMode(VL53L1X::Medium);
+  sensor2.setDistanceMode(VL53L1X::Medium);
+  sensor0.setMeasurementTimingBudget(20000);
+  sensor1.setMeasurementTimingBudget(20000);
+  sensor2.setMeasurementTimingBudget(20000);
+  sensor0.startContinuous(20);
+  sensor1.startContinuous(20);
+  sensor2.startContinuous(20);
 #else
   sensor0.setMeasurementTimingBudget(20000);
   sensor1.setMeasurementTimingBudget(20000);
@@ -153,8 +153,8 @@ void RC_setup()
   RC_analogWrite(BIN1, 0);
   RC_analogWrite(BIN2, 0);
 #ifndef SERVO
-  ledcSetup(0, 490, PWM_level);  // 490
-  ledcSetup(1, 490, PWM_level);  // 490
+  ledcSetup(0, 240, PWM_level);  // 490
+  ledcSetup(1, 240, PWM_level);  // 490
   ledcAttachPin(AIN1, 0);
   ledcAttachPin(AIN2, 1);
   AIN1 = 0;
