@@ -15,9 +15,6 @@
 // Private Variable for timmer task
 #define   UP_SPEED      (200)       // StartUP speed
 #define   UP_TIME       (5)         // 50[ms]
-//#define TIMER0_INTERVAL_MS        10
-//hw_timer_t *Timer1 = NULL;
-//portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 float timer_interval = 0.01;  //seconds
 Ticker Timer1;
 
@@ -58,8 +55,8 @@ int SERVO_PIN = 21;
 #endif
 Servo Steer_servo;  // create servo object to control a servo
 #define SERVO_TRIM 12           // typ 12
-#define SERVO_LEFT 60           // max 60
-#define SERVO_RIGHT 130         // max 130
+#define SERVO_LEFT 55           // max 60
+#define SERVO_RIGHT 135         // max 130
 #define SERVO_CENTER 90
 #else
 int AIN1 = 19;      // common with SHUT0
@@ -166,11 +163,6 @@ void RC_setup()
   Steer_servo.attach(SERVO_PIN, 500, 2500);  // attaches the servo on pin 25 to the servo object
 #endif
   //----  Timer task start
-  // Interval in microsecs
-//  Timer1 = timerBegin(0, 80, true); //timer=1us
-//  timerAttachInterrupt(Timer1, RC_run, true);
-//  timerAlarmWrite(Timer1, TIMER0_INTERVAL_MS * 1000, true); // 30ms
-//  timerAlarmEnable(Timer1);
   Timer1.attach(timer_interval, RC_run);
 }
 
@@ -252,7 +244,6 @@ int RC_drive(int direc, int ipwm){
 //    direc     :  derection
 //    ipwm      :  0 - 255
 //=========================================================
-
 void RC_run(void) 
 {
   if ( s_gear == FREE ){

@@ -57,17 +57,23 @@ void setup()
 //=========================================================
 //  auto pilot function
 //=========================================================
-#define MAX_SPEED 1.0       // max speed factor
-#define MID_SPEED 0.8       // mid speed factor
-#define LOW_SPEED 1.0       // low speed need torque
-#define BRAKE_TIME 1000     // coasting max time
-#define MAX_DISTANCE 250
-#define MIN_DISTANCE 70
-#define MAX_ANGLE 80        // max 100
+#define MAX_SPEED       1.0       // max speed factor
+#define MID_SPEED       0.8       // mid speed factor
+#define LOW_SPEED       1.0       // low speed need torque
+#define BRAKE_TIME      1000      // coasting max time
+#define MAX_DISTANCE_W  350       // wide
+#define MIN_DISTANCE_W  70
+#define MAX_ANGLE       80        // max 100
+#define MAX_DISTANCE_F  300       // 300mm
+#define MID_DISTANCE_F  200       // 200mm
+#define MIN_DISTANCE_F  100       // 100mm
+#define STP_DISTANCE_F  0
 int s0, s1, s2;
 int CurDir = BRAKE;         // current direction
 int CurSpeed = 0;           // current speed
+int CurDistance = 0;        // current distance
 int LastDir = BRAKE;        // last direction
+int LastDistance = 0;       // last distance
 int sTime, eTime = 0;       // fwd pass time
 
 void auto_pilot()
@@ -75,24 +81,39 @@ void auto_pilot()
   //=========================================================
   //  drive  
   //=========================================================
-  if(s1 < 100){
+  int Brake_flag = 0;         // 1:Brake on
+  
+  if(s1 < MIN_DISTANCE_F){                  
     CurDir = REVERSE;
     CurSpeed = Max_Speed * MAX_SPEED;
+    CurDistance = STP_DISTANCE_F;
   }else {
-    if (s1 > 250) {
+    if (s1 > MAX_DISTANCE_F) {                // 300 > x
+      CurDistance = MAX_DISTANCE_F;
       CurDir = FORWARD;
       CurSpeed = Max_Speed * MAX_SPEED;
-    } else {
+    } else {                      
       CurDir = FORWARD;
-      if (s1 > 150) {
+      if (s1 > MID_DISTANCE_F) {              // 300 > x > 200
+        CurDistance = MID_DISTANCE_F;
         CurSpeed = Max_Speed * MID_SPEED;
-      }else {
-        CurSpeed = Max_Speed * LOW_SPEED;
+      }else {                                 // 200 > x > 100
+        CurDistance = MIN_DISTANCE_F;
+//        if (LastDistance >= MIN_DISTANCE_F) { // Brake
+//          Brake_flag = 1;
+//          Serial.println("#### BRAKE !!!");
+//        } else {                              // Accel
+          CurSpeed = Max_Speed * LOW_SPEED;
+//        }
       }
     }
   }
-  RC_drive(CurDir, CurSpeed);
-  
+  if (Brake_flag == 0) {
+    RC_drive(CurDir, CurSpeed);
+  } else {
+    RC_drive(BRAKE, 255);
+  }
+
   if (LastDir != FORWARD && CurDir == FORWARD) {
     sTime = millis();
     eTime = 0;
@@ -112,16 +133,18 @@ void auto_pilot()
 //    Serial.println(eTime);
     CurDir = BRAKE;      
   }
-  LastDir = CurDir;  
+  LastDir = CurDir;
+  LastDistance = CurDistance;
   //=========================================================
   //  steer  
   //=========================================================
-  int dMin = MIN_DISTANCE;
-  int dMax = MAX_DISTANCE;
+  int dMin = MIN_DISTANCE_W;
+  int dMax = MAX_DISTANCE_W;
   int steerMax = MAX_ANGLE;
   int dAngle;
   int dDir = CENTER;
   int pos;
+  int dDiff;
 
   pos = s0 - s2;
   
@@ -132,8 +155,10 @@ void auto_pilot()
 
   if (pos < 0)  dMax = s2;
   else          dMax = s0;
-  
-  dAngle = (s0 - s2) * steerMax / (dMax - dMin);
+
+  dDiff = dMax -dMin;
+  if (dDiff == 0) dAngle = 0;
+  else            dAngle = (s0 - s2) * steerMax / dDiff;
   if (dAngle > 0) {
     dDir = LEFT;
   } else if (dAngle < 0) {
@@ -163,7 +188,7 @@ void auto_pilot()
   Serial.print("dDir : ");
   Serial.print(dDir);
   Serial.print("  dAngle : ");
-  Serial.println(dAngle);
+  Serial.print(dAngle);
 */
 }
 
@@ -195,6 +220,7 @@ void manual_pilot()
   }
 }
 
+int loop_count = 0;
 //=========================================================
 //  Arduino Main function
 //=========================================================
@@ -202,6 +228,10 @@ void loop()
 {
   M5.update();
 #ifdef USE_BLYNK
+  loop_count++;
+  if (loop_count >= 3) {
+    loop_count = 0;
+  }
   Blynk.run();
 #endif
   char buf[32];
@@ -223,12 +253,14 @@ void loop()
   s2=sensor2.readRangeSingleMillimeters();
 #endif
 #ifdef USE_BLYNK
-  sprintf( buf, "%3dcm%3dcm%3dcm ", s0/10, s1/10, s2/10);
-  lcd.print(0,0, " LEFT CENT.RIGHT");
-  lcd.print(0, 1, buf);
+  if (loop_count == 0) {
+    sprintf( buf, "%3dcm%3dcm%3dcm ", s0/10, s1/10, s2/10);
+    lcd.print(0,0, " LEFT CENT.RIGHT");
+    lcd.print(0, 1, buf);
+  }
 #endif
 ///*
-  Serial.print("Sensor0:");
+  Serial.print("  Sensor0:");
   Serial.print(s0);
   Serial.print("  Sensor1:");
   Serial.print(s1);
