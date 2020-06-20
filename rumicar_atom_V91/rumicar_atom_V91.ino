@@ -8,12 +8,12 @@
 //                                 out - in -in
 //                                 tunning strate runnin 
 //=========================================================
-#define USE_BLYNK
+#define USE_BLYNK                 // yse BLYNK Smartphone comminication interface
 #ifdef USE_BLYNK
 #define BLYNK_PRINT Serial
 #define BLYNK_USE_DIRECT_CONNECT
 #endif
-#include "M5Atom.h"
+#include "M5Atom.h"               // CPU: M5 Atom Matrix
 #include <BlynkSimpleEsp32_BLE.h>
 #include <BLEDevice.h>
 #include <BLEServer.h>
@@ -21,62 +21,70 @@
 #define EXTERN extern
 #include "RumiCar_atom.h"
 
-#ifdef  SENSOR_VL53L1X
-VL53L1X sensor0;
-VL53L1X sensor1;
-VL53L1X sensor2;
-#else
-VL53L0X sensor0;
-VL53L0X sensor1;
-VL53L0X sensor2;
+//=========================================================
+//  RumiCar Default Parameter
+//=========================================================
+#define PILOT_MODE      1         // 1:Auto 2:Manual 
+#define MAX_POWER       180       // 255 max
+#define MAX_SPEED       1.0       // max speed factor
+#define MID_SPEED       0.8       // mid speed factor
+#define LOW_SPEED       1.0       // low speed need torque
+#define BRAKE_TIME      1000      // coasting max time
+#define MAX_DISTANCE_W  350       // max distance to wall
+#define MID_DISTANCE_W  120       // keep distance from inside wall
+#define MIN_DISTANCE_W  70        // min distance to wall
+#define MAX_ANGLE       80        // max 100
+#define OVR_DISTANCE_F  800       // 800mm  detect straight 
+#define MAX_DISTANCE_F  300       // 300mm  detect front wall
+#define MID_DISTANCE_F  200       // 200mm  speed down distance
+#define MIN_DISTANCE_F  100       // 100mm  reverse distance
+#define STP_DISTANCE_F  0         //   0mm kiss to wall
+#define REVERSE_TIME    300       // reverse time 500ms
+#define OIO_OFFSET      120       // out in out offset
+#define OIO_TIME        500       // continue 500ms to inside
+#define DEVICE_NAME "ByRumiCar"   // BLE Device Name
+
+#ifdef  SENSOR_VL53L1X            // use VL53L1X
+VL53L1X sensor0;                  // create right sensor instanse
+VL53L1X sensor1;                  // create front sensor instance
+VL53L1X sensor2;                  // create left  sensor instance
+#else                             // use VL53L0X
+VL53L0X sensor0;                  // create right sensor instance
+VL53L0X sensor1;                  // create front sensor instance
+VL53L0X sensor2;                  // create left  sensor instance
 #endif
+
 //=========================================================
 //  Bylnk BLE definition
 //=========================================================
-char auth[] = "mcJxlsL7QpjgwQ6Rr-OGJVhbWw9jWiSp";
-#define DEVICE_NAME "ByRumiCar"
-int16_t Joy_X = 0;
-int16_t Joy_Y = 0;
-int16_t AutoPilot = 1;
-int16_t Trim = 0;
-int16_t Max_Speed = 180;
+char auth[] = "mcJxlsL7QpjgwQ6Rr-OGJVhbWw9jWiSp";   // BLYNK Authentication code
+int16_t Joy_X = 0;                // BLYNK JoyStick X
+int16_t Joy_Y = 0;                // BLYNK JoyStick Y
+int16_t AutoPilot = PILOT_MODE;   // Default Pilot Mode
+int16_t Trim = 0;                 // Default Trimmer value
+int16_t Max_Speed = MAX_POWER;    // Default Max Motor Power
 #ifdef USE_BLYNK
-WidgetLCD lcd(V3);
+WidgetLCD lcd(V3);                // BLYNK Virtual LCD 16x2
 #endif
+
 //=========================================================
 //  Arduino setup function
 //=========================================================
 void setup()
 {
-  RC_setup();
+  RC_setup();               //   RumiCar initial function
 #ifdef USE_BLYNK
-  Blynk.setDeviceName(DEVICE_NAME);
+  Blynk.setDeviceName(DEVICE_NAME); // start BLYNK
   Blynk.begin(auth);
 
-  lcd.clear();              // Smart Phone LCD Display
+  lcd.clear();              // cear BLYNK virtual LCD Display
 #endif  
 }
 
 //=========================================================
 //  auto pilot function
 //=========================================================
-#define MAX_SPEED       1.0       // max speed factor
-#define MID_SPEED       0.8       // mid speed factor
-#define LOW_SPEED       1.0       // low speed need torque
-#define BRAKE_TIME      1000      // coasting max time
-#define MAX_DISTANCE_W  350       // wide
-#define MID_DISTANCE_W  120
-#define MIN_DISTANCE_W  70
-#define MAX_ANGLE       80        // max 100
-#define OVR_DISTANCE_F  800       // 800mm
-#define MAX_DISTANCE_F  300       // 300mm
-#define MID_DISTANCE_F  200       // 200mm
-#define MIN_DISTANCE_F  100       // 100m
-#define STP_DISTANCE_F  0
-#define REVERSE_TIME    500       // reverse time 500ms
-#define OIO_OFFSET      150       // out in out offset
-#define OIO_TIME        500       // continue 500ms to inside
-int s0, s1, s2;
+int s0, s1, s2;             // left, center, right censor value
 int CurDir = BRAKE;         // current direction
 int CurSpeed = 0;           // current speed
 int CurDistance = 0;        // current distance
@@ -84,14 +92,15 @@ int LastDir = BRAKE;        // last direction
 int LastDistance = 0;       // last distance
 int sTime, eTime = 0;       // fwd pass time
 int sCornerTime, eCornerTime = 0;  // cornering time
-int last_dDir = CENTER;
-int steerMax;
+int last_dDir = CENTER;     // last direction
+int steerMax;               // limit steering angle
+
 void auto_pilot()
 {
   //=========================================================
-  //  drive  
+  //  driving  
   //=========================================================
-  int Brake_flag = 0;         // 1:Brake on
+  int Brake_flag = 0;         // 1:Brake on flag default 0
 
   if (s1 > OVR_DISTANCE_F &&  // detect straight 
       s0 > MID_DISTANCE_W &&  // not near left wall
@@ -104,7 +113,7 @@ void auto_pilot()
   Serial.print(" steerMax : ");
   Serial.print(steerMax);  
 */
-  if(s1 < MIN_DISTANCE_F){                  
+  if(s1 < MIN_DISTANCE_F){                    // x < 100
     CurDir = REVERSE;
     CurSpeed = Max_Speed * MAX_SPEED;
     CurDistance = STP_DISTANCE_F;
@@ -120,68 +129,68 @@ void auto_pilot()
         CurSpeed = Max_Speed * MID_SPEED;
       }else {                                 // 200 > x > 100
         CurDistance = MIN_DISTANCE_F;
-//        if (LastDistance >= MIN_DISTANCE_F) { // Brake
+//        if (LastDistance >= MIN_DISTANCE_F) { // Brake mode (experiment)
 //          Brake_flag = 1;
 //          Serial.println("#### BRAKE !!!");
-//        } else {                              // Accel
+//        } else {                            // Accel
           CurSpeed = Max_Speed * LOW_SPEED;
 //        }
       }
     }
   }
-  if (Brake_flag == 0) {
+  if (Brake_flag == 0) {                      // braking(experimet)
     RC_drive(CurDir, CurSpeed);
     if (CurDir == REVERSE) delay(REVERSE_TIME);
   } else {
     RC_drive(BRAKE, 255);
   }
 
-  if (LastDir != FORWARD && CurDir == FORWARD) {
+  if (LastDir != FORWARD && CurDir == FORWARD) {  // change to FORWARD
     sTime = millis();
-    eTime = 0;
+    eTime = 0;                                    // clear elapse time
 //    Serial.print("REVERSE to FORWARD : ");
 //    Serial.println(eTime);
   }
-  if (LastDir == FORWARD && CurDir == FORWARD) {
-    eTime = millis() - sTime;
+  if (LastDir == FORWARD && CurDir == FORWARD) {  // continue FORWARD
+    eTime = millis() - sTime;                     // add elapse  time
     if (eTime > 10000) {
       eTime = 10000;
     }
 //    Serial.print("FORWARD to FORWARD : ");
 //    Serial.println(eTime);
   }
-  if (eTime > BRAKE_TIME && CurDir == REVERSE) {
+  if (eTime > BRAKE_TIME && CurDir == REVERSE) {  // coasting timeout 
 //    Serial.print("BRAKEING           : ");
 //    Serial.println(eTime);
-    CurDir = BRAKE;                                 // not REVERSE 
+    CurDir = BRAKE;                               // not REVERSE 
   }
 
   //=========================================================
-  //  steer  
+  //  steering
   //=========================================================
-  int dMin = MIN_DISTANCE_W;
-  int dMax = MAX_DISTANCE_W;
-  int dAngle;
-  int dDir = CENTER;
-  int pos;
-  int dDiff;
-  int oioOffset = OIO_OFFSET;
+  int dMin = MIN_DISTANCE_W;        // min distance to wall     
+  int dMax = MAX_DISTANCE_W;        // max distance to wall
+  int dAngle;                       // steering angle
+  int dDir = CENTER;                // direction of travel
+  int pos;                          // position between wall to wall
+  int dDiff;                        // sensor difference
+  int oioOffset = OIO_OFFSET;       // out in out offset
 
-  pos = s0 - s2;
+  pos = s0 - s2;                    // detect direction of travel 
   
-  if      (s0 > dMax) s0 = dMax;
-  else if (s0 < dMin) s0 = dMin;
-  if      (s2 > dMax) s2 = dMax;
-  else if (s2 < dMin) s2 = dMin;
-
+  if      (s0 > dMax) s0 = dMax;    // correct Max Value 
+  else if (s0 < dMin) s0 = dMin;    // correct Min Value
+  if      (s2 > dMax) s2 = dMax;    // correct Max Value
+  else if (s2 < dMin) s2 = dMin;    // correct Min Value
+                                    // turn to inside
   if (eCornerTime > OIO_TIME)  oioOffset = OIO_OFFSET;
   else                         oioOffset = 0;
 
-  if (pos < 0)  {
-    s2 += oioOffset;
+  if (pos < 0)  {                   // turn to left
+    s2 += oioOffset;                // turn to near left wall
     dMax = s2;
-  } else {
-    s0 += oioOffset;
+  } else {                          // turn to right
+    s0 += oioOffset;                // turn to near right wall
     dMax = s0;
   }
 /*
@@ -190,6 +199,7 @@ void auto_pilot()
   Serial.print("  Sensor2:");
   Serial.print(s2);
 */
+                                    // calc steering angle
   dDiff = dMax -dMin;
   if (dDiff == 0) dAngle = 0;
   else            dAngle = (s0 - s2) * steerMax / dDiff;
@@ -202,13 +212,13 @@ void auto_pilot()
     dDir = CENTER;
     dAngle = 0;
   }
-  
+                                    // kirikaeshi support
   if (CurDir == REVERSE) {
     if (dDir == RIGHT) {
       dDir = LEFT;
     } else if (dDir == LEFT) {
       dDir = RIGHT;
-    } else {                  // kirikaeshi
+    } else {                        // kirikaeshi
       if (pos > 0) {
         dDir = RIGHT;
       } else {
@@ -217,13 +227,14 @@ void auto_pilot()
       dAngle = steerMax * 0.7;
     }
   }
-  RC_steer(dDir, dAngle);
-  if (last_dDir != dDir || LastDir != CurDir) {
+  RC_steer(dDir, dAngle);           // steering
+
+  if (last_dDir != dDir || LastDir != CurDir) { // change drive direction
     sCornerTime = millis();
-    eCornerTime = 0;
+    eCornerTime = 0;                            // clear elapse time
   }
-  if (last_dDir == dDir && LastDir == CurDir) {
-    eCornerTime = millis() - sCornerTime;
+  if (last_dDir == dDir && LastDir == CurDir) { // continue
+    eCornerTime = millis() - sCornerTime;       // calc elapse time
     if (eCornerTime > 10000) {
       eCornerTime = 10000;
     }
@@ -238,7 +249,7 @@ void auto_pilot()
   Serial.print("  Elaps Time : ");
   Serial.print(eCornerTime);
 */
-  LastDir = CurDir;
+  LastDir = CurDir;                 // save last value
   LastDistance = CurDistance;
   last_dDir = dDir;
 }
@@ -248,11 +259,11 @@ void auto_pilot()
 //=========================================================
 void manual_pilot()
 {
-  int sDrive;
-  int angle;
-  int K_OFF = 50;    // original 64
-  
-  if (Joy_Y > 10) {
+  int sDrive;         // dirve power
+  int angle;          // steering angle
+  int K_OFF = 50;     // min power offset
+                      // driving
+  if (Joy_Y > 10) {   
     sDrive = constrain( Joy_Y + K_OFF, 0, Max_Speed);
     RC_drive(FORWARD, sDrive);
   } else if (Joy_Y < -10) {
@@ -261,6 +272,7 @@ void manual_pilot()
   } else {
     RC_drive(BRAKE, 0); 
   }
+                      // steering
   angle = constrain(Joy_X + Trim, -100, 100);
   if (angle > 0) {
     RC_steer(RIGHT, angle);
@@ -280,10 +292,10 @@ void loop()
   M5.update();
 #ifdef USE_BLYNK
   loop_count++;
-  if (loop_count >= 3) {
+  if (loop_count >= 3) {    // load to 1/4
     loop_count = 0;
   }
-  Blynk.run();
+  Blynk.run(); 
 #endif
   char buf[32];
     
@@ -295,16 +307,16 @@ void loop()
   //s0=sensor0.readRangeContinuousMillimeters();
   //s1=sensor1.readRangeContinuousMillimeters();
   //s2=sensor2.readRangeContinuousMillimeters();
-  s0=sensor0.read();
-  s1=sensor1.read();
-  s2=sensor2.read();
+  s0=sensor0.read();        // read left  sensor
+  s1=sensor1.read();        // read front sensor
+  s2=sensor2.read();        // read right sensor
 #else
   s0=sensor0.readRangeSingleMillimeters();
   s1=sensor1.readRangeSingleMillimeters();
   s2=sensor2.readRangeSingleMillimeters();
 #endif
 #ifdef USE_BLYNK
-  if (loop_count == 0) {
+  if (loop_count == 0) {    // print virtual LCD
     sprintf( buf, "%3dcm%3dcm%3dcm ", s0/10, s1/10, s2/10);
     lcd.print(0,0, " LEFT CENT.RIGHT");
     lcd.print(0, 1, buf);
