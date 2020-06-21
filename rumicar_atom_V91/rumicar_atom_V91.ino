@@ -8,7 +8,7 @@
 //                                 out - in -in
 //                                 tunning strate runnin 
 //=========================================================
-#define USE_BLYNK                 // yse BLYNK Smartphone comminication interface
+#define USE_BLYNK                 // use BLYNK Smartphone comminication interface
 #ifdef USE_BLYNK
 #define BLYNK_PRINT Serial
 #define BLYNK_USE_DIRECT_CONNECT
