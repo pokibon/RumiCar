@@ -123,9 +123,15 @@ void RC_setup()
 
   // reduce timing budget to 20 ms (default is about 33 ms)
 #ifdef SENSOR_VL53L1X
-  sensor0.setDistanceMode(VL53L1X::Medium);
-  sensor1.setDistanceMode(VL53L1X::Medium);
-  sensor2.setDistanceMode(VL53L1X::Medium);
+  sensor0.VL53L1X_SetROI(8 , 8, 60);
+  sensor1.VL53L1X_SetROI(8 , 8, 60);
+  sensor2.VL53L1X_SetROI(8 , 8, 60);
+//  sensor0.setDistanceMode(VL53L1X::Medium);
+//  sensor1.setDistanceMode(VL53L1X::Medium);
+//  sensor2.setDistanceMode(VL53L1X::Medium);
+  sensor0.setDistanceMode(VL53L1X::Short);
+  sensor1.setDistanceMode(VL53L1X::Short);
+  sensor2.setDistanceMode(VL53L1X::Short);  
   sensor0.setMeasurementTimingBudget(20000);
   sensor1.setMeasurementTimingBudget(20000);
   sensor2.setMeasurementTimingBudget(20000);

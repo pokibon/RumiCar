@@ -16,12 +16,9 @@ VL53L1X sensor2;                  // create left  sensor instance
 //=========================================================
 void setup()
 {
-  uint16_t ROI_X, ROI_Y;
+//  uint16_t ROI_X, ROI_Y;
   
   RC_setup();               //   RumiCar initial function
-  sensor0.VL53L1X_SetROI(8 , 8, 60);
-  sensor1.VL53L1X_SetROI(8 , 8, 60);
-  sensor2.VL53L1X_SetROI(8 , 8, 60);
 /*
   sensor1.VL53L1X_GetROI_XY(&ROI_X, &ROI_Y);
   Serial.print("  ROI_X :");
@@ -46,10 +43,10 @@ void loop()
   s1=sensor1.read();        // read front sensor
   s2=sensor2.read();        // read right sensor
 
-  if (dirFlag) RC_steer(RIGHT, 100);
-  else         RC_steer(LEFT, 100);
-  dirFlag = !dirFlag;
-  delay(250);
+//  if (dirFlag) RC_steer(RIGHT, 100);
+//  else         RC_steer(LEFT, 100);
+//  dirFlag = !dirFlag;
+//  delay(250);
 ///*
   Serial.print("  Sensor0:");
   Serial.print(s0);

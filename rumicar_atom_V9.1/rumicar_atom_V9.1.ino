@@ -322,14 +322,14 @@ void loop()
     lcd.print(0, 1, buf);
   }
 #endif
-/*
+///*
   Serial.print("  Sensor0:");
   Serial.print(s0);
   Serial.print("  Sensor1:");
   Serial.print(s1);
   Serial.print("  Sensor2:");
   Serial.println(s2);
-*/
+//*/
   if (AutoPilot == 1) {
     auto_pilot();
   } else {
