@@ -116,16 +116,23 @@ int RC_drive(int direc, int ipwm){
     return 0;
   }
 }
-int iBuf = 0;
+
+bool dirFlag = true;
 void loop()
 {
   int s0, s1, s2;
 //  s0=sensor0.readRangeSingleMillimeters();
 //  s1=sensor1.readRangeSingleMillimeters();
 //  s2=sensor2.readRangeSingleMillimeters();
-  s0=sensor0.readRangeContinuousMillimeters();
+//  s0=sensor0.readRangeContinuousMillimeters();
 //  s1=sensor1.readRangeContinuousMillimeters();
 //  s2=sensor2.readRangeContinuousMillimeters();
+  if (dirFlag) RC_steer(RIGHT);
+  else         RC_steer(LEFT);
+  dirFlag = !dirFlag;
+  delay(30);
+
+/*
   if(s1<100){
     RC_drive(REVERSE,150);
   }else if (s1<150){
@@ -143,6 +150,7 @@ void loop()
   }else{
     RC_steer(RIGHT);
   }
+*/
 
 ///*
   Serial.print("Sensor0:");
