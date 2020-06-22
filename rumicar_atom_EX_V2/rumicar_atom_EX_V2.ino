@@ -30,7 +30,7 @@ void setup()
   Serial.println(ROI_Y);
 */
 }
-
+bool dirFlag = true;
 //=========================================================
 //  Arduino Main function
 //=========================================================
@@ -45,6 +45,11 @@ void loop()
   s0=sensor0.read();        // read left  sensor
   s1=sensor1.read();        // read front sensor
   s2=sensor2.read();        // read right sensor
+
+  if (dirFlag) RC_steer(RIGHT, 100);
+  else         RC_steer(LEFT, 100);
+  dirFlag = !dirFlag;
+  delay(250);
 ///*
   Serial.print("  Sensor0:");
   Serial.print(s0);
