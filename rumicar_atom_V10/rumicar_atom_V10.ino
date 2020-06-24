@@ -33,13 +33,13 @@
 #define MAX_DISTANCE_W  350       // max distance to wall
 #define MID_DISTANCE_W  120       // keep distance from inside wall
 #define MIN_DISTANCE_W  70        // min distance to wall
-#define MAX_ANGLE       80        // max 100
+#define MAX_ANGLE       100        // max 100
 #define OVR_DISTANCE_F  800       // 800mm  detect straight 
 #define MAX_DISTANCE_F  300       // 300mm  detect front wall
 #define MID_DISTANCE_F  200       // 200mm  speed down distance
 #define MIN_DISTANCE_F  100       // 100mm  reverse distance
 #define STP_DISTANCE_F  0         //   0mm kiss to wall
-#define REVERSE_TIME    300       // reverse time 500ms
+#define REVERSE_TIME    100       // reverse time 500ms
 #define OIO_OFFSET      120       // out in out offset
 #define OIO_TIME        500       // continue 500ms to inside
 #define DEVICE_NAME "ByRumiCar"   // BLE Device Name
@@ -219,11 +219,12 @@ void auto_pilot()
     } else if (dDir == LEFT) {
       dDir = RIGHT;
     } else {                        // kirikaeshi
-      if (pos > 0) {
-        dDir = RIGHT;
-      } else {
-        dDir = LEFT;
-      }
+//      if (pos > 0) {
+//        dDir = RIGHT;
+//      } else {
+//        dDir = LEFT;
+//      }
+      dDir = CENTER;
       dAngle = steerMax * 0.7;
     }
   }

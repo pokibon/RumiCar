@@ -39,20 +39,21 @@ void loop()
   //  get VL53L0X TOF sensor value 
   //    S0: left S1: center S2: right
   //=========================================================
-//  s0=sensor0.read();        // read left  sensor
-//  s1=sensor1.read();        // read front sensor
-//  s2=sensor2.read();        // read right sensor
-
-  if (dirFlag) RC_steer(RIGHT, 50);
-  else         RC_steer(LEFT, 50);
+  s0=sensor0.read();        // read left  sensor
+  s1=sensor1.read();        // read front sensor
+  s2=sensor2.read();        // read right sensor
+///*
+  if (dirFlag) RC_steer(RIGHT, 100);
+  else         RC_steer(LEFT,  100);
   dirFlag = !dirFlag;
-  delay(70);
-/*
+  delay(2000);
+//*/
+///*
   Serial.print("  Sensor0:");
   Serial.print(s0);
   Serial.print("  Sensor1:");
   Serial.print(s1);
   Serial.print("  Sensor2:");
   Serial.println(s2);
-*/
+//*/
 }
