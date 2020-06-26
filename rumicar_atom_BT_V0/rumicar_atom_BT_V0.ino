@@ -7,9 +7,6 @@
 #define EXTERN extern
 #include "RumiCar_atom.h"
 #include "BluetoothSerial.h"
-#if !defined(CONFIG_BT_ENABLED) || !defined(CONFIG_BLUEDROID_ENABLED)
-#error Bluetooth is not enabled! Please run `make menuconfig` to and enable it
-#endif
 
 VL53L1X sensor0;                  // create right sensor instanse
 VL53L1X sensor1;                  // create front sensor instance
@@ -23,7 +20,7 @@ BluetoothSerial SerialBT;
 void setup()
 {
 //  uint16_t ROI_X, ROI_Y;
-  
+  Serial.begin(115200);  
   RC_setup();               //   RumiCar initial function
   Serial.println("Start bluetooth!");
   SerialBT.begin("RumiCar_ESP32");
@@ -58,13 +55,23 @@ void loop()
   SerialBT.print("  Sensor2:");
   SerialBT.println(s2);
 //*/
-/*
-  if (Serial.available()) {
-    SerialBT.write(Serial.read());
+
+  if(s1<100){
+    RC_drive(REVERSE,150);
+  }else if (s1<150){
+    RC_drive(FORWARD,150);
+  }else if (s1<250){
+    RC_drive(FORWARD,200);
+  }else{
+    RC_drive(FORWARD,255);
   }
-  if (SerialBT.available()) {
-    Serial.write(SerialBT.read());
+
+//  if (abs(s0 - s2) < 10) {
+//    RC_steer(CENTER);
+//  } else if(s0>s2){
+  if(s0>s2){
+     RC_steer(LEFT, 50);
+  }else{
+    RC_steer(RIGHT, 50);
   }
-  delay(20);
-*/
 }
