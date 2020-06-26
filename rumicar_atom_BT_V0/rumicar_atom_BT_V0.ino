@@ -50,14 +50,15 @@ void loop()
   dirFlag = !dirFlag;
   delay(2000);
 */
-/*
+///*
   SerialBT.print("  Sensor0:");
   SerialBT.print(s0);
   SerialBT.print("  Sensor1:");
   SerialBT.print(s1);
   SerialBT.print("  Sensor2:");
   SerialBT.println(s2);
-*/
+//*/
+/*
   if (Serial.available()) {
     SerialBT.write(Serial.read());
   }
@@ -65,4 +66,5 @@ void loop()
     Serial.write(SerialBT.read());
   }
   delay(20);
+*/
 }
