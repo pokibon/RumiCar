@@ -54,9 +54,9 @@ int SERVO_PIN = 13;
 int SERVO_PIN = 21;
 #endif
 Servo Steer_servo;  // create servo object to control a servo
-#define SERVO_TRIM 12           // typ 12
+#define SERVO_TRIM 16           // typ 12
 #define SERVO_LEFT 60           // max 60
-#define SERVO_RIGHT 123         // max 125
+#define SERVO_RIGHT 120         // max 125
 #define SERVO_CENTER 90
 #else
 int AIN1 = 19;      // common with SHUT0

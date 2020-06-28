@@ -8,6 +8,8 @@
 #include "RumiCar_atom.h"
 #include "BluetoothSerial.h"
 
+#define MAX_SPEED 0.7
+
 VL53L1X sensor0;                  // create right sensor instanse
 VL53L1X sensor1;                  // create front sensor instance
 VL53L1X sensor2;                  // create left  sensor instance
@@ -55,11 +57,11 @@ void loop()
   if(s1<100){
     RC_drive(REVERSE,150);
   }else if (s1<150){
-    RC_drive(FORWARD,150);
+    RC_drive(FORWARD,150 * MAX_SPEED);
   }else if (s1<250){
-    RC_drive(FORWARD,200);
+    RC_drive(FORWARD,200 * MAX_SPEED);
   }else{
-    RC_drive(FORWARD,255);
+    RC_drive(FORWARD,255 * MAX_SPEED);
   }
 
 //  if (abs(s0 - s2) < 10) {
@@ -67,10 +69,10 @@ void loop()
 //  } else if(s0>s2){
   if(s0>s2){
     driveDir    = LEFT;
-    drivePower  = 50;
+    drivePower  = 45;
   }else{
     driveDir    = RIGHT;
-    drivePower  = 50;
+    drivePower  = 45;
   }
   RC_steer(driveDir, drivePower);
 

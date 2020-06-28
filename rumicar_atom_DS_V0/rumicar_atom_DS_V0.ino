@@ -7,6 +7,8 @@
 #include <VL53L0X.h>
 #include "BluetoothSerial.h"
 
+#define MAX_SPEED 1.0
+
 VL53L0X sensor0;
 VL53L0X sensor1;
 VL53L0X sensor2;
@@ -191,13 +193,13 @@ int RC_drive(int direc, int ipwm){
     RC_analogWrite(BIN2,0);
   }else if ( direc == REVERSE ){
     RC_analogWrite(BIN1,0);
-    RC_analogWrite(BIN2,ipwm);
+    RC_analogWrite(BIN2,ipwm * MAX_SPEED);
   }else if ( direc == FORWARD ){
-    RC_analogWrite(BIN1,ipwm);
+    RC_analogWrite(BIN1,ipwm * MAX_SPEED);
     RC_analogWrite(BIN2,0);
   }else if ( direc == BRAKE ){
-    RC_analogWrite(BIN1,ipwm);
-    RC_analogWrite(BIN2,ipwm);
+    RC_analogWrite(BIN1,ipwm * MAX_SPEED);
+    RC_analogWrite(BIN2,ipwm * MAX_SPEED);
   }else{
     return 0;
   }
