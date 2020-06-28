@@ -206,6 +206,9 @@ int iBuf = 0;
 void loop()
 {
   int s0, s1, s2;
+  int driveDir;
+  int drivePower;
+
   M5.update();
 
   s0=sensor0.readRangeContinuousMillimeters();
@@ -214,15 +217,6 @@ void loop()
 //  s0=sensor0.readRangeSingleMillimeters();
 //  s1=sensor1.readRangeSingleMillimeters();
 //  s2=sensor2.readRangeSingleMillimeters();
-
-///*
-  SerialBT.print("  Sensor0:");
-  SerialBT.print(s0);
-  SerialBT.print("  Sensor1:");
-  SerialBT.print(s1);
-  SerialBT.print("  Sensor2:");
-  SerialBT.println(s2);
-//*/
 
   if(s1<100){
     RC_drive(REVERSE,150);
@@ -235,8 +229,24 @@ void loop()
   }
 
   if(s0>s2){
-     RC_steer(LEFT);
+    driveDir    = LEFT;
+    drivePower  = 50;
   }else{
-    RC_steer(RIGHT);
+    driveDir    = RIGHT;
+    drivePower  = 50;
   }
+  RC_steer(driveDir);
+  ///*
+  SerialBT.print("  S0:");
+  SerialBT.print(s0);
+  SerialBT.print("  S1:");
+  SerialBT.print(s1);
+  SerialBT.print("  S2:");
+  SerialBT.print(s2);
+  SerialBT.print("  D:");
+  SerialBT.print(driveDir);
+  SerialBT.print("  P:");
+  SerialBT.print(drivePower);
+  SerialBT.println();
+//*/
 }
