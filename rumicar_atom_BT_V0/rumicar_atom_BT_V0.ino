@@ -32,7 +32,10 @@ bool dirFlag = true;
 //=========================================================
 void loop()
 {
-  int s0, s1, s2;    
+  int s0, s1, s2;
+  int driveDir;
+  int drivePower;
+
   M5.update();
   //=========================================================
   //  get VL53L0X TOF sensor value 
@@ -47,14 +50,7 @@ void loop()
   dirFlag = !dirFlag;
   delay(2000);
 */
-///*
-  SerialBT.print("  Sensor0:");
-  SerialBT.print(s0);
-  SerialBT.print("  Sensor1:");
-  SerialBT.print(s1);
-  SerialBT.print("  Sensor2:");
-  SerialBT.println(s2);
-//*/
+
 
   if(s1<100){
     RC_drive(REVERSE,150);
@@ -70,8 +66,25 @@ void loop()
 //    RC_steer(CENTER);
 //  } else if(s0>s2){
   if(s0>s2){
-     RC_steer(LEFT, 50);
+    driveDir    = LEFT;
+    drivePower  = 50;
   }else{
-    RC_steer(RIGHT, 50);
+    driveDir    = RIGHT;
+    drivePower  = 50;
   }
+  RC_steer(driveDir, drivePower);
+
+///*
+  SerialBT.print("  S0:");
+  SerialBT.print(s0);
+  SerialBT.print("  S1:");
+  SerialBT.print(s1);
+  SerialBT.print("  S2:");
+  SerialBT.print(s2);
+  SerialBT.print("  D:");
+  SerialBT.print(driveDir);
+  SerialBT.print("  P:");
+  SerialBT.print(drivePower);
+  SerialBT.println();
+//*/
 }
