@@ -6,7 +6,7 @@
 #include <Wire.h>
 #define EXTERN extern
 #include "RumiCar_atom.h"
-//#include "BluetoothSerial.h"
+#include "BluetoothSerial.h"
 
 #define MAX_SPEED 0.7
 
@@ -14,8 +14,11 @@ VL53L1X sensor0;                  // create right sensor instanse
 VL53L1X sensor1;                  // create front sensor instance
 VL53L1X sensor2;                  // create left  sensor instance
 
-//BluetoothSerial SerialBT;
+//#define BT_ON
 
+#ifdef BT_ON
+BluetoothSerial SerialBT;
+#endif
 //=========================================================
 //  Arduino setup function
 //=========================================================
@@ -24,11 +27,18 @@ void setup()
 //  uint16_t ROI_X, ROI_Y;
   Serial.begin(115200);  
   RC_setup();               //   RumiCar initial function
-//  Serial.println("Start bluetooth!");
-//  SerialBT.begin("RumiCar_ESP32");
-//  Serial.println("The device started, now you can pair it with bluetooth!");
+#ifdef BT_ON
+  Serial.println("Start bluetooth!");
+  SerialBT.begin("RumiCar_ESP32");
+  Serial.println("The device started, now you can pair it with bluetooth!");
+#endif
 }
 bool dirFlag = true;
+int p;
+int prep;
+int i;
+int d;
+unsigned long preTime;
 //=========================================================
 //  Arduino Main function
 //=========================================================
@@ -63,19 +73,43 @@ void loop()
   }else{
     RC_drive(FORWARD,255 * MAX_SPEED);
   }
+  //=========================================================
+  //  steer  
+  //=========================================================
+  #define Kp      0.3
+  #define Ki      300
+  #define Kd      0.1
+  int dAngle;
+  int targetPos;
+  int curPos
+  unsigned long dt;
+  unsigned long t; 
 
-//  if (abs(s0 - s2) < 10) {
-//    RC_steer(CENTER);
-//  } else if(s0>s2){
-  if(s0>s2){
-    driveDir    = LEFT;
-    drivePower  = 45;
-  }else{
-    driveDir    = RIGHT;
-    drivePower  = 45;
+  targetPos = s0 - (s0 + s2) / 2;
+  curPos = (s2 - s0) /2;
+  p = targetPos + curPos;
+
+  t = micros() / 1000;
+  dt = t - preTime;
+  preTime = t;
+
+  d = (p - prep) / dt;
+
+  dAngle = constrain(P * Kp, -100, 100);
+//  Serial.print("dAngle : ");
+//  Serial.println(dAngle);
+  if (dAngle > 10) {
+    driveDir = LEFT;
+    dAngle = abs(dAngle);
+  } else if (dAngle < -10) {
+    driveDir = RIGHT;
+    dAngle = abs(dAngle);
+  } else {
+    driveDir = CENTER;
+    dAngle = abs(dAngle);
   }
-  RC_steer(driveDir, drivePower);
-/*
+  RC_steer(driveDir, dAngle);
+#ifdef BT_ON
   SerialBT.print("  S0:");
   SerialBT.print(s0);
   SerialBT.print("  S1:");
@@ -84,10 +118,10 @@ void loop()
   SerialBT.print(s2);
   SerialBT.print("  D:");
   SerialBT.print(driveDir);
-  SerialBT.print("  P:");
-  SerialBT.print(drivePower);
+  SerialBT.print("  R:");
+  SerialBT.print(dAngle);
   SerialBT.println();
-*/
+#endif
 ///*
   Serial.print("  S0:");
   Serial.print(s0);
@@ -101,5 +135,4 @@ void loop()
   Serial.print(drivePower);
   Serial.println();
 //*/
-  delay(80);
 }
