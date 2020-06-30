@@ -34,11 +34,10 @@ void setup()
 #endif
 }
 bool dirFlag = true;
-int p;
-int prep;
-int i;
-int d;
-float preTime;
+float p;
+float prep;
+float d;
+unsigned long preTime = 0;
 //=========================================================
 //  Arduino Main function
 //=========================================================
@@ -76,23 +75,23 @@ void loop()
   //=========================================================
   //  steer  
   //=========================================================
-  #define Kp      1.0
+  #define Kp      0.3
   #define Kd      0.05
   int dAngle;
   int targetPos;
   int curPos;
-  float dt;
-  float t; 
+  unsigned long dt;
+  unsigned long t; 
 
   targetPos = (s0 + s2) / 2;
   curPos = s2;
   p = (targetPos - curPos) * Kp;
 
-  t = millis() / 1000000;
+  t = millis();
   dt = t - preTime;
   preTime = t;
 
-  d = (p - prep) / dt * Kd;
+  d = (p - prep) / dt * 1000 * Kd;
 
   dAngle = constrain(p + d , -100, 100);
 //  Serial.print("dAngle : ");
@@ -130,6 +129,8 @@ void loop()
   Serial.print(s2);
   Serial.print("\tp:");
   Serial.print(p);
+  Serial.print("\tt:");
+  Serial.print(t);
   Serial.print("\td:");
   Serial.print(d);
   Serial.print("\tdt:");
