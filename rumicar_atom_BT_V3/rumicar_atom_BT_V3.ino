@@ -88,7 +88,7 @@ void loop()
   curPos = s2;
   p = (targetPos - curPos) * Kp;
 
-  t = millis() / 1000;
+  t = millis() / 1000000;
   dt = t - preTime;
   preTime = t;
 
