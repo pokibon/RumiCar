@@ -38,7 +38,7 @@ int p;
 int prep;
 int i;
 int d;
-unsigned long preTime;
+float preTime;
 //=========================================================
 //  Arduino Main function
 //=========================================================
@@ -76,32 +76,31 @@ void loop()
   //=========================================================
   //  steer  
   //=========================================================
-  #define Kp      0.3
-  #define Ki      300
-  #define Kd      0.1
+  #define Kp      1.0
+  #define Kd      0.05
   int dAngle;
   int targetPos;
-  int curPos
-  unsigned long dt;
-  unsigned long t; 
+  int curPos;
+  float dt;
+  float t; 
 
-  targetPos = s0 - (s0 + s2) / 2;
-  curPos = (s2 - s0) /2;
-  p = targetPos + curPos;
+  targetPos = (s0 + s2) / 2;
+  curPos = s2;
+  p = (targetPos - curPos) * Kp;
 
-  t = micros() / 1000;
+  t = millis() / 1000;
   dt = t - preTime;
   preTime = t;
 
-  d = (p - prep) / dt;
+  d = (p - prep) / dt * Kd;
 
-  dAngle = constrain(P * Kp, -100, 100);
+  dAngle = constrain(p + d , -100, 100);
 //  Serial.print("dAngle : ");
 //  Serial.println(dAngle);
-  if (dAngle > 10) {
+  if (dAngle > 0) {
     driveDir = LEFT;
     dAngle = abs(dAngle);
-  } else if (dAngle < -10) {
+  } else if (dAngle < 0) {
     driveDir = RIGHT;
     dAngle = abs(dAngle);
   } else {
@@ -125,14 +124,20 @@ void loop()
 ///*
   Serial.print("  S0:");
   Serial.print(s0);
-  Serial.print("  S1:");
+  Serial.print("\tS1:");
   Serial.print(s1);
-  Serial.print("  S2:");
+  Serial.print("\tS2:");
   Serial.print(s2);
-  Serial.print("  D:");
+  Serial.print("\tp:");
+  Serial.print(p);
+  Serial.print("\td:");
+  Serial.print(d);
+  Serial.print("\tdt:");
+  Serial.print(dt);
+  Serial.print("\tDIR:");
   Serial.print(driveDir);
-  Serial.print("  P:");
-  Serial.print(drivePower);
+  Serial.print("\tAngle:");
+  Serial.print(dAngle);
   Serial.println();
 //*/
 }
