@@ -14,7 +14,7 @@ VL53L1X sensor0;                  // create right sensor instanse
 VL53L1X sensor1;                  // create front sensor instance
 VL53L1X sensor2;                  // create left  sensor instance
 
-//#define BT_ON
+#define BT_ON
 
 #ifdef BT_ON
 BluetoothSerial SerialBT;
@@ -34,11 +34,10 @@ void setup()
 #endif
 }
 bool dirFlag = true;
-int p;
-int prep;
-int i;
-int d;
-float preTime;
+float p;
+float prep;
+float d;
+unsigned long preTime = 0;
 //=========================================================
 //  Arduino Main function
 //=========================================================
@@ -76,24 +75,24 @@ void loop()
   //=========================================================
   //  steer  
   //=========================================================
-  #define Kp      1.0
-  #define Kd      0.05
+  #define Kp      0.5
+  #define Kd      0.2
   int dAngle;
   int targetPos;
   int curPos;
-  float dt;
-  float t; 
+  unsigned long dt;
+  unsigned long t; 
 
   targetPos = (s0 + s2) / 2;
   curPos = s2;
   p = (targetPos - curPos) * Kp;
 
-  t = millis() / 1000000;
+  t = millis();
   dt = t - preTime;
   preTime = t;
 
-  d = (p - prep) / dt * Kd;
-
+  d = (p - prep) * 1000 / dt * Kd;
+  prep = p;
   dAngle = constrain(p + d , -100, 100);
 //  Serial.print("dAngle : ");
 //  Serial.println(dAngle);
@@ -111,13 +110,21 @@ void loop()
 #ifdef BT_ON
   SerialBT.print("  S0:");
   SerialBT.print(s0);
-  SerialBT.print("  S1:");
+  SerialBT.print("\tS1:");
   SerialBT.print(s1);
-  SerialBT.print("  S2:");
+  SerialBT.print("\tS2:");
   SerialBT.print(s2);
-  SerialBT.print("  D:");
+  SerialBT.print("\tt:");
+  SerialBT.print(t);
+  SerialBT.print("\tdt:");
+  SerialBT.print(dt);
+  SerialBT.print("\tp:");
+  SerialBT.print(p);
+  SerialBT.print("\td:");
+  SerialBT.print(d);
+  SerialBT.print("\tDIR:");
   SerialBT.print(driveDir);
-  SerialBT.print("  R:");
+  SerialBT.print("\tAngle:");
   SerialBT.print(dAngle);
   SerialBT.println();
 #endif
@@ -128,12 +135,14 @@ void loop()
   Serial.print(s1);
   Serial.print("\tS2:");
   Serial.print(s2);
+  Serial.print("\tt:");
+  Serial.print(t);
+  Serial.print("\tdt:");
+  Serial.print(dt);
   Serial.print("\tp:");
   Serial.print(p);
   Serial.print("\td:");
   Serial.print(d);
-  Serial.print("\tdt:");
-  Serial.print(dt);
   Serial.print("\tDIR:");
   Serial.print(driveDir);
   Serial.print("\tAngle:");
