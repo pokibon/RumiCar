@@ -21,7 +21,6 @@
 #include <Wire.h>
 #define EXTERN extern
 #include "RumiCar_atom.h"
-
 //=========================================================
 //  RumiCar Default Parameter
 //=========================================================
@@ -31,10 +30,11 @@
 #define MID_SPEED       0.8       // mid speed factor
 #define LOW_SPEED       1.0       // low speed need torque
 #define BRAKE_TIME      1000      // coasting max time
-#define MAX_DISTANCE_W  350       // max distance to wall
-#define MID_DISTANCE_W  120       // keep distance from inside wall
+#define MAX_DISTANCE_W  600       // max distance to wall
+#define MID_DISTANCE_W  150       // keep distance from inside wall
 #define MIN_DISTANCE_W  70        // min distance to wall
-#define MAX_ANGLE       100        // max 100
+#define MAX_ANGLE       100       // max 100%
+#define LIMIT_ANGLE      30       // max  30%
 #define OVR_DISTANCE_F  800       // 800mm  detect straight 
 #define MAX_DISTANCE_F  300       // 300mm  detect front wall
 #define MID_DISTANCE_F  200       // 200mm  speed down distance
@@ -44,7 +44,8 @@
 #define OIO_OFFSET      120       // out in out offset
 #define OIO_TIME        500       // continue 500ms to inside
 #define DEVICE_NAME "ByRumiCar"   // BLE Device Name
-
+#define Kp              0.5       // Konstante p
+#define Kd              0.2       // Konstante d
 #ifdef  SENSOR_VL53L1X            // use VL53L1X
 VL53L1X sensor0;                  // create right sensor instanse
 VL53L1X sensor1;                  // create front sensor instance
@@ -88,17 +89,20 @@ void setup()
 int s0, s1, s2;               // left, center, right censor value
 int CurDir = BRAKE;           // current direction
 int LastDir = BRAKE;          // last direction
-
+float p;                      // proportional control
+float prep;                   // pre value of proportional control
+float d;                      // differential control
+unsigned long preTime = 0;
 //=========================================================
 //  auto_driving
 //=========================================================
 void auto_driving()
 {
-  int sTime, eTime = 0;       // fwd pass time
-  int Brake_flag = 0;         // 1:Brake on flag default 0
-  int CurSpeed = 0;           // current speed
-  int LastDistance = 0;       // last distance
-  int CurDistance = 0;        // current distance
+  int sTime, eTime  = 0;      // fwd pass time
+  int Brake_flag    = 0;      // 1:Brake on flag default 0
+  int CurSpeed      = 0;      // current speed
+  int LastDistance  = 0;      // last distance
+  int CurDistance   = 0;      // current distance
   
   if(s1 < MIN_DISTANCE_F){                    // x < 100
     CurDir = REVERSE;
@@ -153,38 +157,43 @@ void auto_driving()
 //=========================================================
 void auto_steering()
 {
-  //=========================================================
-  //  steering
-  //=========================================================
   int steerMax;                     // limit steering angle
   int sCornerTime, eCornerTime = 0; // cornering time
   int last_dDir = CENTER;           // last direction
   int dMin = MIN_DISTANCE_W;        // min distance to wall     
   int dMax = MAX_DISTANCE_W;        // max distance to wall
   int dAngle;                       // steering angle
-  int dDir = CENTER;                // direction of travel
   int pos;                          // position between wall to wall
-  int dDiff;                        // sensor difference
   int oioOffset = OIO_OFFSET;       // out in out offset
-
+  int targetPos;                    // target position
+  int curPos;                       // current position
+  unsigned long dt;                 // diff time
+  unsigned long t;                  // current time
+  int driveDir;
+  int drivePower;
+  //=========================================================
+  //  detect straight
+  //=========================================================
   if (s1 > OVR_DISTANCE_F &&  // detect straight 
       s0 > MID_DISTANCE_W &&  // not near left wall
       s2 > MID_DISTANCE_W) {  // not near write wall
-    steerMax = MAX_ANGLE / 3; // limit steering
+    steerMax = LIMIT_ANGLE ;  // limit steering
   } else {
     steerMax = MAX_ANGLE;
   }
-
-  pos = s0 - s2;                    // detect direction of travel 
-  
+  //=========================================================
+  //  Limit wall distance
+  //=========================================================
   if      (s0 > dMax) s0 = dMax;    // correct Max Value 
   else if (s0 < dMin) s0 = dMin;    // correct Min Value
   if      (s2 > dMax) s2 = dMax;    // correct Max Value
   else if (s2 < dMin) s2 = dMin;    // correct Min Value
-                                    // turn to inside
+  //=========================================================
+  //  detect out in out mode
+  //=========================================================
   if (eCornerTime > OIO_TIME)  oioOffset = OIO_OFFSET;
   else                         oioOffset = 0;
-
+  pos = s0 - s2;                    // detect direction of travel 
   if (pos < 0)  {                   // turn to left
     s2 += oioOffset;                // turn to near left wall
     dMax = s2;
@@ -198,59 +207,76 @@ void auto_steering()
   Serial.print("  Sensor2:");
   Serial.print(s2);
 */
-                                    // calc steering angle
-  dDiff = dMax -dMin;
-  if (dDiff == 0) dAngle = 0;
-  else            dAngle = (s0 - s2) * steerMax / dDiff;
+  //=========================================================
+  //  calc steering angle
+  //=========================================================
+  targetPos = (s0 + s2) / 2;        // proportional 
+  curPos = s2;                      // standard wall is LEFT
+  p = (targetPos - curPos) * Kp;    // P control
+  t = millis();                     // get current time
+  dt = t - preTime;                 // diff time
+  preTime = t;                
+  d = (p - prep) * 1000 / dt * Kd;  // calc differential
+  prep = p;
+  dAngle = constrain(p + d , -steerMax, steerMax);  // normalize dAngle -100 to 100
+  
   if (dAngle > 0) {
-    dDir = LEFT;
+    driveDir = LEFT;
+    dAngle = abs(dAngle);  
   } else if (dAngle < 0) {
-    dDir = RIGHT;
+    driveDir = RIGHT;
     dAngle = abs(dAngle);      
   } else {
-    dDir = CENTER;
+    driveDir = CENTER;
     dAngle = 0;
   }
-                                    // kirikaeshi support
+  //=========================================================
+  //  kerikaeshi
+  //=========================================================
   if (CurDir == REVERSE) {
-    if (dDir == RIGHT) {
-      dDir = LEFT;
-    } else if (dDir == LEFT) {
-      dDir = RIGHT;
+    if (driveDir == RIGHT) {
+      driveDir = LEFT;
+    } else if (driveDir == LEFT) {
+      driveDir = RIGHT;
     } else {                        // kirikaeshi
 //      if (pos > 0) {
-//        dDir = RIGHT;
+//        driveDir = RIGHT;
 //      } else {
-//        dDir = LEFT;
+//        driveDir = LEFT;
 //      }
-      dDir = CENTER;
+      driveDir = CENTER;
       dAngle = steerMax * 0.7;
     }
   }
-  RC_steer(dDir, dAngle);           // steering
-
-  if (last_dDir != dDir || LastDir != CurDir) { // change drive direction
+  RC_steer(driveDir, dAngle);           // steering
+  //=========================================================
+  //  calc corner time
+  //=========================================================
+  if (last_dDir != driveDir || LastDir != CurDir) { // change drive direction
     sCornerTime = millis();
     eCornerTime = 0;                            // clear elapse time
   }
-  if (last_dDir == dDir && LastDir == CurDir) { // continue
+  if (last_dDir == driveDir && LastDir == CurDir) { // continue
     eCornerTime = millis() - sCornerTime;       // calc elapse time
     if (eCornerTime > 10000) {
       eCornerTime = 10000;
     }
   }
+  //=========================================================
+  //  save old direction
+  //=========================================================
+  LastDir = CurDir;                 // save last value
+  last_dDir = driveDir;
 /*
   Serial.print("  Laset Direction : ");
   Serial.print(last_dDir);
   Serial.print("  Current Direction : ");
-  Serial.print(dDir);
+  Serial.print(driveDir);
   Serial.print("  dAngle : ");
   Serial.print(dAngle);
   Serial.print("  Elaps Time : ");
   Serial.print(eCornerTime);
 */
-  LastDir = CurDir;                 // save last value
-  last_dDir = dDir;
 }
 
 
