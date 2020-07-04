@@ -41,7 +41,7 @@
 #define MIN_DISTANCE_F  100       // 100mm  reverse distance
 #define STP_DISTANCE_F  0         //   0mm kiss to wall
 #define REVERSE_TIME    100       // reverse time 500ms
-#define OIO_OFFSET      120       // out in out offset
+#define OIO_OFFSET      0         // out in out offset 0=off
 #define OIO_TIME        500       // continue 500ms to inside
 #define DEVICE_NAME "ByRumiCar"   // BLE Device Name
 #define Kp              0.5       // Konstante p
@@ -89,9 +89,11 @@ void setup()
 int s0, s1, s2;               // left, center, right censor value
 int CurDir = BRAKE;           // current direction
 int LastDir = BRAKE;          // last direction
+float prep = 0;               // pre value of proportional control
 float p;                      // proportional control
-float prep;                   // pre value of proportional control
-float d;                      // differential control
+float d  = 0;                 // differential control
+float d1 = 0;
+float d2 = 0;                
 unsigned long preTime = 0;
 //=========================================================
 //  auto_driving
@@ -217,9 +219,11 @@ void auto_steering()
   dt = t - preTime;                 // diff time
   preTime = t;                
   d = (p - prep) * 1000 / dt * Kd;  // calc differential
-  prep = p;
+  d = (d + d1 + d2) / 3;
   dAngle = constrain(p + d , -steerMax, steerMax);  // normalize dAngle -100 to 100
-  
+  prep = p;
+  d2 = d1;
+  d1 = d;
   if (dAngle > 0) {
     driveDir = LEFT;
     dAngle = abs(dAngle);  
