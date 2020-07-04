@@ -7,6 +7,7 @@
 //                V9.1  2020-06-19 tunning reverse mode
 //                                 out - in -in
 //                                 tunning strate runnin 
+//                V10.0 2020-07-04 Support PD Control steering
 //=========================================================
 #define USE_BLYNK                 // use BLYNK Smartphone comminication interface
 #ifdef USE_BLYNK
@@ -82,37 +83,23 @@ void setup()
 }
 
 //=========================================================
-//  auto pilot function
+//  auto pilot variables difinition
 //=========================================================
-int s0, s1, s2;             // left, center, right censor value
-int CurDir = BRAKE;         // current direction
-int CurSpeed = 0;           // current speed
-int CurDistance = 0;        // current distance
-int LastDir = BRAKE;        // last direction
-int LastDistance = 0;       // last distance
-int sTime, eTime = 0;       // fwd pass time
-int sCornerTime, eCornerTime = 0;  // cornering time
-int last_dDir = CENTER;     // last direction
-int steerMax;               // limit steering angle
+int s0, s1, s2;               // left, center, right censor value
+int CurDir = BRAKE;           // current direction
+int LastDir = BRAKE;          // last direction
 
-void auto_pilot()
+//=========================================================
+//  auto_driving
+//=========================================================
+void auto_driving()
 {
-  //=========================================================
-  //  driving  
-  //=========================================================
+  int sTime, eTime = 0;       // fwd pass time
   int Brake_flag = 0;         // 1:Brake on flag default 0
-
-  if (s1 > OVR_DISTANCE_F &&  // detect straight 
-      s0 > MID_DISTANCE_W &&  // not near left wall
-      s2 > MID_DISTANCE_W) {  // not near write wall
-    steerMax = MAX_ANGLE / 3; // limit steering
-  } else {
-    steerMax = MAX_ANGLE;
-  }
-/*
-  Serial.print(" steerMax : ");
-  Serial.print(steerMax);  
-*/
+  int CurSpeed = 0;           // current speed
+  int LastDistance = 0;       // last distance
+  int CurDistance = 0;        // current distance
+  
   if(s1 < MIN_DISTANCE_F){                    // x < 100
     CurDir = REVERSE;
     CurSpeed = Max_Speed * MAX_SPEED;
@@ -138,7 +125,7 @@ void auto_pilot()
       }
     }
   }
-  if (Brake_flag == 0) {                      // braking(experimet)
+  if (Brake_flag == 0) {                      // braking(experiment)
     RC_drive(CurDir, CurSpeed);
     if (CurDir == REVERSE) delay(REVERSE_TIME);
   } else {
@@ -148,26 +135,30 @@ void auto_pilot()
   if (LastDir != FORWARD && CurDir == FORWARD) {  // change to FORWARD
     sTime = millis();
     eTime = 0;                                    // clear elapse time
-//    Serial.print("REVERSE to FORWARD : ");
-//    Serial.println(eTime);
   }
   if (LastDir == FORWARD && CurDir == FORWARD) {  // continue FORWARD
     eTime = millis() - sTime;                     // add elapse  time
     if (eTime > 10000) {
       eTime = 10000;
     }
-//    Serial.print("FORWARD to FORWARD : ");
-//    Serial.println(eTime);
   }
   if (eTime > BRAKE_TIME && CurDir == REVERSE) {  // coasting timeout 
-//    Serial.print("BRAKEING           : ");
-//    Serial.println(eTime);
     CurDir = BRAKE;                               // not REVERSE 
   }
+  LastDistance = CurDistance;
+}
 
+//=========================================================
+//  auto_steering
+//=========================================================
+void auto_steering()
+{
   //=========================================================
   //  steering
   //=========================================================
+  int steerMax;                     // limit steering angle
+  int sCornerTime, eCornerTime = 0; // cornering time
+  int last_dDir = CENTER;           // last direction
   int dMin = MIN_DISTANCE_W;        // min distance to wall     
   int dMax = MAX_DISTANCE_W;        // max distance to wall
   int dAngle;                       // steering angle
@@ -175,6 +166,14 @@ void auto_pilot()
   int pos;                          // position between wall to wall
   int dDiff;                        // sensor difference
   int oioOffset = OIO_OFFSET;       // out in out offset
+
+  if (s1 > OVR_DISTANCE_F &&  // detect straight 
+      s0 > MID_DISTANCE_W &&  // not near left wall
+      s2 > MID_DISTANCE_W) {  // not near write wall
+    steerMax = MAX_ANGLE / 3; // limit steering
+  } else {
+    steerMax = MAX_ANGLE;
+  }
 
   pos = s0 - s2;                    // detect direction of travel 
   
@@ -251,8 +250,17 @@ void auto_pilot()
   Serial.print(eCornerTime);
 */
   LastDir = CurDir;                 // save last value
-  LastDistance = CurDistance;
   last_dDir = dDir;
+}
+
+
+//=========================================================
+//  auto_pilot
+//=========================================================
+void auto_pilot()
+{
+  auto_driving();
+  auto_steering();
 }
 
 //=========================================================

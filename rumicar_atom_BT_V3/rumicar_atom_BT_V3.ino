@@ -1,6 +1,7 @@
 //=========================================================
 //  rumicar_atom_BT_V0.ino :  RumiCar test application 
 //  History     : V2.0  2020-06-21 Support VL53L1X
+//                V3.0  2020-07-03 Support PD Function
 //=========================================================
 #include "M5Atom.h"               // CPU: M5 Atom Matrix
 #include <Wire.h>
@@ -33,10 +34,10 @@ void setup()
   Serial.println("The device started, now you can pair it with bluetooth!");
 #endif
 }
-bool dirFlag = true;
-float p;
-float prep;
-float d;
+
+float p;                    // proportional control
+float prep;                 // pre value of proportional control
+float d;                    // differential control
 unsigned long preTime = 0;
 //=========================================================
 //  Arduino Main function
@@ -55,13 +56,6 @@ void loop()
   s0=sensor0.read();        // read left  sensor
   s1=sensor1.read();        // read front sensor
   s2=sensor2.read();        // read right sensor
-/*
-  if (dirFlag) RC_steer(RIGHT, 100);
-  else         RC_steer(LEFT,  100);
-  dirFlag = !dirFlag;
-  delay(2000);
-*/
-
 
   if(s1<100){
     RC_drive(REVERSE,150);
@@ -75,27 +69,26 @@ void loop()
   //=========================================================
   //  steer  
   //=========================================================
-  #define Kp      0.5
-  #define Kd      0.2
-  int dAngle;
-  int targetPos;
-  int curPos;
-  unsigned long dt;
-  unsigned long t; 
+  #define Kp      0.5       // Konstante p
+  #define Kd      0.2       // Konstante d
+  int dAngle;               // steering angle 0 - 100
+  int targetPos;            // target position
+  int curPos;               // current position
+  unsigned long dt;         // diff time
+  unsigned long t;          // current time
 
-  targetPos = (s0 + s2) / 2;
-  curPos = s2;
-  p = (targetPos - curPos) * Kp;
+  targetPos = (s0 + s2) / 2;  // proportional 
+  curPos = s2;                // standard wall is LEFT
+  p = (targetPos - curPos) * Kp;  // P control
 
-  t = millis();
-  dt = t - preTime;
-  preTime = t;
+  t = millis();               // get current time
+  dt = t - preTime;           // diff time
+  preTime = t;                
 
-  d = (p - prep) * 1000 / dt * Kd;
+  d = (p - prep) * 1000 / dt * Kd;  // calc differential
   prep = p;
-  dAngle = constrain(p + d , -100, 100);
-//  Serial.print("dAngle : ");
-//  Serial.println(dAngle);
+  dAngle = constrain(p + d , -100, 100);  // normalize dAngle -100 to 100
+
   if (dAngle > 0) {
     driveDir = LEFT;
     dAngle = abs(dAngle);
@@ -107,6 +100,7 @@ void loop()
     dAngle = abs(dAngle);
   }
   RC_steer(driveDir, dAngle);
+
 #ifdef BT_ON
   SerialBT.print("  S0:");
   SerialBT.print(s0);
