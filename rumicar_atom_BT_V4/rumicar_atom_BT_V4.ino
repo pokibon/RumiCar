@@ -24,7 +24,7 @@ BluetoothSerial SerialBT;
 #define BRAKE_TIME      1000      // coasting max time
 #define MAX_DISTANCE_W  300       // max distance to wall
 #define MID_DISTANCE_W  150       // keep distance from inside wall
-#define MIN_DISTANCE_W  70        // min distance to wall
+#define MIN_DISTANCE_W  50        // min distance to wall
 #define MAX_ANGLE       100       // max 100%
 #define LIMIT_ANGLE      30       // max  30%
 #define OVR_DISTANCE_F  800       // 800mm  detect straight 
@@ -166,6 +166,7 @@ void auto_steering()
   unsigned long t;                  // current time
   int driveDir;
   int drivePower;
+  char buf[256];
   //=========================================================
   //  detect straight
   //=========================================================
@@ -269,6 +270,10 @@ void auto_steering()
   last_dDir = driveDir;
 
 #ifdef BT_ON
+  sprintf(buf, "%4d\t%4d\t%4d\t%8d\t%5.2f\t%5.2f\t%1d\t%3d\t%4.2f\t%4.2f\t%3d", 
+                s0, s1, s2, t, p, d, driveDir, dAngle, kp, kd, Max_Speed);
+  SerialBT.println(buf);
+/*  
   SerialBT.print("\tS0:");
   SerialBT.print(s0);
   SerialBT.print("\tS1:");
@@ -296,8 +301,9 @@ void auto_steering()
   SerialBT.print("\tdMode : ");
   SerialBT.print(dMode);
   SerialBT.println();
+*/
 #endif
-///*
+/*
   Serial.print("  S0:");
   Serial.print(s0);
   Serial.print("\tS1:");
@@ -317,7 +323,7 @@ void auto_steering()
   Serial.print("\tAngle:");
   Serial.print(dAngle);
   Serial.println();
-//*/
+*/
 }
 
 
@@ -388,8 +394,14 @@ void loop()
   if(SerialBT.available()){
     char action = SerialBT.read();
     if (action == 'a' ){
-      if (AutoPilot == 0) AutoPilot = 1;
-      else                AutoPilot = 0;
+      if (AutoPilot == 0) {
+        AutoPilot = 1;
+#ifdef BT_ON
+        SerialBT.println("s0\tS1\tS2\ttime\td\tp\tDIR\tAngle\tKp\tKd\tSpeed");
+#endif
+      } else {
+        AutoPilot = 0;
+      }
     } else if (action == 'm') {
       if (dMode == 0) dMode = 1;
       else            dMode = 0;
