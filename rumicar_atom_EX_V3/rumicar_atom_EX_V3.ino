@@ -110,11 +110,17 @@ void auto_driving()
     curSpeed = maxSpeed * MAX_SPEED;
   } else {
     if (dMode == 0) {
-      curDriveDir = BRAKE;
-      curSpeed = 255;
-    } else {
       curDriveDir = FREE;
       curSpeed = 0;
+    } else if (dMode == 1) {
+      curDriveDir = BRAKE;
+      curSpeed = 255;
+    } else if (dMode == 2) {
+      curDriveDir = REVERSE;
+      curSpeed = 128;
+    } else if (dMode == 3) {
+      curDriveDir = REVERSE;
+      curSpeed = 255;
     }
   }
 
@@ -309,8 +315,8 @@ void auto_steering()
   //  Logging
   //=========================================================
 #ifdef BT_ON
-  sprintf(buf, "\t%4d\t%4d\t%4d\t%8d\t%5.2f\t%5.2f\t%1d\t%3d\t%4.2f\t%4.2f\t%3d\t%1d", 
-                s0, s1, s2, t, p, d, steerDir, dAngle, kp, kd, maxSpeed, courseLayout);
+  sprintf(buf, "\t%4d\t%4d\t%4d\t%8d\t%5.2f\t%5.2f\t%1d\t%3d\t%4.2f\t%4.2f\t%3d\t%d\t%d", 
+                s0, s1, s2, t, p, d, steerDir, dAngle, kp, kd, maxSpeed, courseLayout, dMode);
   SerialBT.println(buf);
 #endif
 //  SerialBT.println(buf);
@@ -385,14 +391,17 @@ void loop()
       if (autoPilot == 0) {
         autoPilot = 1;
 #ifdef BT_ON
-        SerialBT.println("\tS0\tS1\tS2\tTime\tD\tP\tDIR\tAngle\tKp\tKd\tSpeed\tLayout");
+        SerialBT.println("\tS0\tS1\tS2\tTime\tD\tP\tDIR\tAngle\tKp\tKd\tSpeed\tLayout\tdMode");
 #endif
       } else {
         autoPilot = 0;
       }
+    } else if (action == 'M') {
+      dMode++;
+      if (dMode > 3) dMode = 3;
     } else if (action == 'm') {
-      if (dMode == 0) dMode = 1;
-      else            dMode = 0;
+      dMode--;
+      if (dMode < 0) dMode = 0;
     } else if (action == 'S') {
       maxSpeed += 10;
       if (maxSpeed >= 255) maxSpeed = 255;
