@@ -19,6 +19,7 @@ BluetoothSerial SerialBT;
 #define DEVICE_NAME     "RumiCar_ESP32" // BLE Device Name
 #define PILOT_MODE      1         // 1:Auto 2:Manual 
 #define MAX_POWER       255       // 255 max
+#define MIN_POWER       100       // 100 min
 #define MAX_SPEED       1.0       // max speed factor
 #define MID_SPEED       0.75      // mid speed factor
 #define LOW_SPEED       0.5       // low speed need torque
@@ -33,7 +34,7 @@ BluetoothSerial SerialBT;
 #define MID_DISTANCE_F  200       // 200mm  speed down distance
 #define MIN_DISTANCE_F  100       // 100mm  reverse distance
 #define STP_DISTANCE_F  0         // 0mm kiss to wall
-#define REVERSE_TIME    100       // reverse time 500ms
+#define REVERSE_TIME    200       // reverse time 500ms
 #define OIO_OFFSET      0         // out in out offset 0=off
 #define OIO_TIME        500       // continue 500ms to inside
 #define Kp              0.6       // Konstante p
@@ -112,19 +113,21 @@ void auto_driving()
 
   dDistance = s1 - preDistance;
   curSpeed = (dDistance * 108) / (int)dTime;
-  if (curSpeed > preSpeed) accelFlag = 1;
-  else accelFlag = 0;
+//  if (curSpeed > preSpeed) accelFlag = 1;
+//  else accelFlag = 0;
 
   if(s1 < MIN_DISTANCE_F){                    // x < 100
     curDriveDir = REVERSE;
-    targetSpeed = maxSpeed * MID_SPEED;
+//    targetSpeed = maxSpeed * MID_SPEED;
+    targetSpeed = map(s1, STP_DISTANCE_F, MIN_DISTANCE_F, MIN_POWER + dAngle, maxSpeed * MID_SPEED);
   }else {
     if (s1 > OVR_DISTANCE_F) {                // 800 < x
       curDriveDir = FORWARD;
       targetSpeed = maxSpeed * MAX_SPEED;     // full throttle
     } else {                                  // 100 < x < 800
       curDriveDir = FORWARD;
-      targetSpeed = maxSpeed * MID_SPEED;
+//      targetSpeed = maxSpeed * MID_SPEED;
+      targetSpeed = map(s1, MIN_DISTANCE_F, OVR_DISTANCE_F, MIN_POWER + dAngle, maxSpeed * MAX_SPEED);
     } 
   }
 
