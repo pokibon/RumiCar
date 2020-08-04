@@ -5,7 +5,7 @@
 //=========================================================
 #include "M5Atom.h"               // CPU: M5 Atom Matrix
 #include <Wire.h>
-#define EXTERN extern
+#define  EXTERN extern
 #include "RumiCar_atom.h"
 #include "BluetoothSerial.h"
 
