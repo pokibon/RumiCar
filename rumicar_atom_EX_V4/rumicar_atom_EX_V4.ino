@@ -37,7 +37,7 @@ BluetoothSerial SerialBT;
 #define REVERSE_TIME    200       // reverse time 500ms
 #define OIO_OFFSET      0         // out in out offset 0=off
 #define OIO_TIME        500       // continue 500ms to inside
-#define Kp              0.6       // Konstante p
+#define Kp              0.8       // Konstante p
 #define Kd              0.1       // Konstante d
 #define DMODE           0         // Differential control mode
                                   // 1: normalize 0:active
@@ -119,7 +119,7 @@ void auto_driving()
   if(s1 < MIN_DISTANCE_F){                    // x < 100
     curDriveDir = REVERSE;
 //    targetSpeed = maxSpeed * MID_SPEED;
-    targetSpeed = map(s1, STP_DISTANCE_F, MIN_DISTANCE_F, MIN_POWER + dAngle, maxSpeed * MID_SPEED);
+    targetSpeed = map(s1, STP_DISTANCE_F, MIN_DISTANCE_F, MIN_POWER + dAngle / 2, maxSpeed * MID_SPEED);
   }else {
     if (s1 > OVR_DISTANCE_F) {                // 800 < x
       curDriveDir = FORWARD;
@@ -127,19 +127,19 @@ void auto_driving()
     } else {                                  // 100 < x < 800
       curDriveDir = FORWARD;
 //      targetSpeed = maxSpeed * MID_SPEED;
-      targetSpeed = map(s1, MIN_DISTANCE_F, OVR_DISTANCE_F, MIN_POWER + dAngle, maxSpeed * MAX_SPEED);
+      targetSpeed = map(s1, MIN_DISTANCE_F, OVR_DISTANCE_F, MIN_POWER + dAngle / 2, maxSpeed * MAX_SPEED);
     } 
   }
 
   //=========================================================
   //  drive motor
   //=========================================================
-  if (targetSpeed > curSpeed) {
+//  if (targetSpeed > curSpeed) {
     RC_drive(curDriveDir, targetSpeed);
     if (curDriveDir == REVERSE) delay(REVERSE_TIME);
-  } else {
-    RC_drive(BRAKE, 255);
-  }
+//  } else {
+//    RC_drive(BRAKE, 255);
+//  }
   //=========================================================
   //  calc forward time
   //=========================================================
