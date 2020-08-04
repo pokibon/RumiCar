@@ -37,7 +37,7 @@ BluetoothSerial SerialBT;
 #define REVERSE_TIME    100       // reverse time 500ms
 #define OIO_OFFSET      50         // out in out offset 0=off
 #define OIO_TIME        500       // continue 500ms to inside
-#define Kp              0.7       // Konstante p
+#define Kp              0.8       // Konstante p
 #define Kd              0.1       // Konstante d
 #define DMODE           0         // Differential control mode
                                   // 1: normalize 0:active
@@ -81,7 +81,7 @@ static unsigned long eFwdTime = 0;       // fwd passage time
 static unsigned long sCornerTime = 0;    // cornering passage time
 static unsigned long eCornerTime = 0;    // cornering passage time
 static int preDistance    = 0;           // previous distance(S1)
-static int accelFlag = 0;                // accelation or brake
+static int reverseFlag = 0;              // accelation or brake
 static int preSpeed       = 0;           // previous speed
 static int targetSpeed    = 0;           // target speed
 static int curSpeed       = 0;           // current speed
@@ -114,8 +114,8 @@ void auto_driving()
 
   dDistance = s1 - preDistance;
   curSpeed = (dDistance * 108) / (int)dTime;
-  if (s1 >= preS1) accelFlag = 1;
-  else accelFlag = 0;
+  if (s1 >= preS1) reverseFlag = 1;
+  else reverseFlag = 0;
 
   if(s1 < MIN_DISTANCE_F){                    // x < 100
     curDriveDir = REVERSE;
@@ -154,9 +154,9 @@ void auto_driving()
       eFwdTime = 10000;
     }
   }
-  if (eFwdTime > BRAKE_TIME && curDriveDir == REVERSE) {  // coasting timeout 
-    curDriveDir = BRAKE;                                  // not REVERSE 
-  }
+//  if (eFwdTime > BRAKE_TIME && curDriveDir == REVERSE) {  // coasting timeout 
+//    curDriveDir = BRAKE;                                  // not REVERSE 
+//  }
   preDistance  = s1;
   preSpeed     = curSpeed;
   preS1        = s1;
@@ -251,17 +251,12 @@ void auto_steering()
   //=========================================================
   //  kerikaeshi
   //=========================================================
-  if (curDriveDir == REVERSE) {
+  if (curDriveDir == REVERSE && reverseFlag == 1) {
     if (steerDir == RIGHT) {
       steerDir = LEFT;                  // counter steer
     } else if (steerDir == LEFT) {
       steerDir = RIGHT;                 // counter steer
     } else {                            // kirikaeshi
-//      if (pos > 0) {
-//        steerDir = RIGHT;
-//      } else {
-//        steerDir = LEFT;
-//      }
       steerDir = CENTER;
       dAngle = steerMax * 0.7;
     }
@@ -402,9 +397,9 @@ void loop()
       maxSpeed -= 10;
       if (maxSpeed <= 100) maxSpeed = 100;
     } else if (action == 'P') {
-      kp += 0.1;
+      kp += 0.05;
     } else if (action == 'p') {
-      kp -= 0.1;
+      kp -= 0.05;
       if (kp <= 0) kp = 0;
     } else if (action == 'D') {
       kd += 0.05;
