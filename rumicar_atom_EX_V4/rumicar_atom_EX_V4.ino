@@ -2,6 +2,7 @@
 //  rumicar_atom_EX_V3.ino :  RumiCar application 
 //  History     : V3.0  2020-07-17 Brake Test
 //                V4.0  2020-08-03 Brake support
+//                V4.1  2020-08-05 Debug kirikaeshi
 //=========================================================
 #include "M5Atom.h"               // CPU: M5 Atom Matrix
 #include <Wire.h>
@@ -18,8 +19,8 @@ BluetoothSerial SerialBT;
 //=========================================================
 #define DEVICE_NAME     "RumiCar_ESP32" // BLE Device Name
 #define PILOT_MODE      1         // 1:Auto 2:Manual 
-#define MAX_POWER       255       // 230 max
-#define MIN_POWER       100       // 120 min
+#define MAX_POWER       230       // 230 max
+#define MIN_POWER       120       // 120 min
 #define MAX_SPEED       1.0       // max speed factor
 #define MID_SPEED       0.75      // mid speed factor
 #define LOW_SPEED       0.5       // low speed need torque
@@ -138,11 +139,11 @@ void auto_driving()
       curDriveDir = FORWARD;
       targetSpeed   = map(s1, MIN_DISTANCE_F, OVR_DISTANCE_F, 0 , maxSpeed * MAX_SPEED);
       requestTorque = map(s1, MIN_DISTANCE_F, OVR_DISTANCE_F, MIN_POWER + dAngle / 2, maxSpeed * MAX_SPEED);
-      if (targetSpeed > curSpeed) {
-        RC_drive(curDriveDir, requestTorque);
-      } else {
-        RC_drive(BRAKE, 255);        
+      if (targetSpeed < curSpeed) {           // over speed
+        curDriveDir   = BRAKE;
+        requestTorque = 255;
       }
+      RC_drive(curDriveDir, requestTorque);
     } 
   }
   //=========================================================
@@ -317,8 +318,8 @@ void auto_pilot()
   //  Logging
   //=========================================================
 #ifdef BT_ON
-  sprintf(buf, "\t%4d\t%4d\t%4d\t%8d\t%5.2f\t%5.2f\t%1d\t%3d\t%4.2f\t%4.2f\t%3d\t%3d\t%1d\t%1d", 
-                s0, s1, s2, t, p, d, steerDir, dAngle, kp, kd, targetSpeed, curSpeed, courseLayout, dMode);
+  sprintf(buf, "\t%8d\t%4d\t%4d\t%4d\t%5.2f\t%5.2f\t%1d\t%3d\t%4.2f\t%4.2f\t%3d\t%3d\t%1d\t%1d\t%1d", 
+                t, s0, s1, s2, p, d, steerDir, dAngle, kp, kd, requestTorque, curSpeed, curDriveDir, courseLayout, dMode);
   SerialBT.println(buf);
 #endif
 //  SerialBT.println(buf);
@@ -395,7 +396,7 @@ void loop()
       if (autoPilot == 0) {
         autoPilot = 1;
 #ifdef BT_ON
-        SerialBT.println("\tS0\tS1\tS2\tTime\tD\tP\tDIR\tAngle\tKp\tKd\tmaxSpeed\tcurSpeed\tLayout\tdMode");
+        SerialBT.println("\tTime\tS0\tS1\tS2\tD\tP\tDIR\tAngle\tKp\tKd\trequestSpeed\tcurSpeed\tcurDriveDIr\tLayout\tdMode");
 #endif
       } else {
         autoPilot = 0;
