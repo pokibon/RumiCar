@@ -18,8 +18,8 @@ BluetoothSerial SerialBT;
 //=========================================================
 #define DEVICE_NAME     "RumiCar_ESP32" // BLE Device Name
 #define PILOT_MODE      1         // 1:Auto 2:Manual 
-#define MAX_POWER       255       // 255 max
-#define MIN_POWER       100       // 100 min
+#define MAX_POWER       255       // 230 max
+#define MIN_POWER       100       // 120 min
 #define MAX_SPEED       1.0       // max speed factor
 #define MID_SPEED       0.75      // mid speed factor
 #define LOW_SPEED       0.5       // low speed need torque
@@ -225,13 +225,6 @@ void auto_steering()
       s2 += (oioOffset * dMode);      
     }
   }
-
-/*
-  Serial.print("  Sensor0:");
-  Serial.print(s0);
-  Serial.print("  Sensor2:");
-  Serial.print(s2);
-*/
   //=========================================================
   //  calc steering angle
   //=========================================================
@@ -260,7 +253,7 @@ void auto_steering()
   //=========================================================
   //  kerikaeshi
   //=========================================================
-  if (reverseMode == 1) {
+  if (reverseMode == 1 && reverseFlag == 1) {
     if (steerDir == RIGHT) {
       steerDir = LEFT;                  // counter steer
     } else if (steerDir == LEFT) {
@@ -371,9 +364,20 @@ void loop()
   //    S0: left S1: center S2: right
   //=========================================================
 #ifdef SENSOR_VL53L1X
-  s0=sensor0.read();        // read left  sensor
-  s1=sensor1.read();        // read front sensor
-  s2=sensor2.read();        // read right sensor
+  s0 = sensor0.read();        // read left  sensor
+  s1 = sensor1.read();        // read front sensor
+  s2 = sensor2.read();        // read right sensor
+///*
+  Serial.print("\tSensor0:");
+  Serial.print(s0);
+  Serial.print("\tSensor1:");
+  Serial.print(s1);
+  Serial.print("\tSensor2:");
+  Serial.println(s2);  
+  if (s1 <= 0) s1 = OVR_DISTANCE_F; // over 2000mm return 0
+  if (s0 <= 0) s0 = OVR_DISTANCE_F; // over 2000mm return 0
+  if (s2 <= 0) s2 = OVR_DISTANCE_F; // over 2000mm return 0
+//*/
 #else
   //s0=sensor0.readRangeContinuousMillimeters();
   //s1=sensor1.readRangeContinuousMillimeters();
