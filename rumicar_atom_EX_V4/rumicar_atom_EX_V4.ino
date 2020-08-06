@@ -127,7 +127,7 @@ void auto_driving()
   //=========================================================
   //  detect near to wall and set reverse mode
   //=========================================================
-  if (s1 < MIN_DISTANCE_F * 1.2 && abs(dDistance) <= 5) {
+  if ((s1 < MIN_DISTANCE_F) && (abs(dDistance) <= 5)) {
     stopCounter++;
     if (stopCounter > MAX_STOP_TIME && reverseMode == 0) {
       reverseMode = 1;
@@ -164,9 +164,9 @@ void auto_driving()
       RC_drive(curDriveDir, requestTorque);
     } else {                                  // 100 < x < 800
       curDriveDir = FORWARD;
-      targetSpeed   = map(s1, MIN_DISTANCE_F, OVR_DISTANCE_F, 0 , maxSpeed * MAX_SPEED);
+      targetSpeed   = map(s1, MIN_DISTANCE_F, OVR_DISTANCE_F, 0, maxSpeed * MAX_SPEED);
       requestTorque = map(s1, MIN_DISTANCE_F, OVR_DISTANCE_F, MIN_POWER + dAngle / 2, maxSpeed * MAX_SPEED);
-      if (targetSpeed < curSpeed) {           // over speed
+      if (targetSpeed <= curSpeed) {           // over speed
         curDriveDir   = BRAKE;
         requestTorque = MAX_TORQUE;
       }
@@ -394,7 +394,7 @@ void loop()
   Serial.print(s1);
   Serial.print("\tSensor2:");
   Serial.println(s2);  
-  if (s1 <= 0) s1 = OVR_DISTANCE_F; // over 2000mm return 0
+  if (s1 <= 0) s1 = 1; // over 2000mm return 0
   if (s0 <= 0) s0 = OVR_DISTANCE_F; // over 2000mm return 0
   if (s2 <= 0) s2 = OVR_DISTANCE_F; // over 2000mm return 0
 //*/
