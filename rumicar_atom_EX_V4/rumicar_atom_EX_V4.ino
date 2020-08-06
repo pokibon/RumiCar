@@ -2,7 +2,7 @@
 //  rumicar_atom_EX_V3.ino :  RumiCar application 
 //  History     : V3.0  2020-07-17 Brake Test
 //                V4.0  2020-08-03 Brake support
-//                V4.1  2020-08-05 Debug kirikaeshi
+//                V4.1  2020-08-06 Debug kirikaeshi
 //=========================================================
 #include "M5Atom.h"               // CPU: M5 Atom Matrix
 #include <Wire.h>
@@ -19,6 +19,7 @@ BluetoothSerial SerialBT;
 //=========================================================
 #define DEVICE_NAME     "RumiCar_ESP32" // BLE Device Name
 #define PILOT_MODE      1         // 1:Auto 2:Manual 
+#define MAX_TORQUE      255       // max pwm value
 #define MAX_POWER       230       // 230 max
 #define MIN_POWER       120       // 120 min
 #define MAX_SPEED       1.0       // max speed factor
@@ -37,8 +38,9 @@ BluetoothSerial SerialBT;
 #define REVERSE_DISTANCE 100      // 100mm  reverse distance
 #define STP_DISTANCE_F  0         // 0mm kiss to wall
 #define REVERSE_TIME    200       // reverse time 500ms
-#define OIO_OFFSET      50         // out in out offset 0=off
+#define OIO_OFFSET      50        // out in out offset 0=off
 #define OIO_TIME        500       // continue 500ms to inside
+#define MAX_STOP_TIME   4         // stop time(for reverse mode)
 #define Kp              0.8       // Konstante p
 #define Kd              0.1       // Konstante d
 #define DMODE           0         // Differential control mode
@@ -83,13 +85,13 @@ static unsigned long eFwdTime = 0;       // fwd passage time
 static unsigned long sCornerTime = 0;    // cornering passage time
 static unsigned long eCornerTime = 0;    // cornering passage time
 static int preDistance    = 0;           // previous distance(S1)
-static int reverseFlag = 0;              // accelation or brake
 static int preSpeed       = 0;           // previous speed
 static int targetSpeed    = 0;           // target speed
 static int requestTorque  = 0;           // PWM Value
 static int curSpeed       = 0;           // current speed
 static int preS1          = 0;           // pre s1
 static int reverseMode    = 0;           // reversing
+static int stopCounter    = 0;           // stop times
 static int steerDir;                     // steering direction
 static int dAngle;                       // steering angle
 //=========================================================
@@ -117,18 +119,43 @@ void auto_driving()
   int dDistance      = 0;
   int minDistance    = 0;
 
+  //=========================================================
+  //  calc distance to wall & current speed
+  //=========================================================
   dDistance = preDistance - s1;
   curSpeed = (dDistance * 108) / (int)dTime;
+  //=========================================================
+  //  detect near to wall and set reverse mode
+  //=========================================================
+  if (s1 < MIN_DISTANCE_F * 1.2 && abs(dDistance) <= 5) {
+    stopCounter++;
+    if (stopCounter > MAX_STOP_TIME && reverseMode == 0) {
+      reverseMode = 1;
+      stopCounter = 0;
+    } 
+  } else {
+    stopCounter = 0;
+  }
+  //=========================================================
+  //  set reverse distance (expand 100ms)
+  //=========================================================  
   if (reverseMode == 1) {
     minDistance = MIN_DISTANCE_F + REVERSE_DISTANCE;
   } else {
     minDistance = MIN_DISTANCE_F;
   }
+  //=========================================================
+  //  calc distance and speed
+  //=========================================================
   if(s1 < minDistance){                    // x < 100
-    curDriveDir = REVERSE;
-    requestTorque = map(s1, STP_DISTANCE_F, MIN_DISTANCE_F, MIN_POWER + dAngle / 2, maxSpeed * MID_SPEED);
+    if (reverseMode == 0) {
+      curDriveDir   = BRAKE;
+      requestTorque = MAX_TORQUE;
+    } else {
+      curDriveDir = REVERSE;
+      requestTorque = map(s1, STP_DISTANCE_F, MIN_DISTANCE_F, MIN_POWER + dAngle / 2, maxSpeed * MID_SPEED);
+    }
     RC_drive(curDriveDir, requestTorque);
-    reverseMode = 1;
   } else {
     reverseMode = 0;
     if (s1 > OVR_DISTANCE_F) {                // 800 < x
@@ -141,18 +168,10 @@ void auto_driving()
       requestTorque = map(s1, MIN_DISTANCE_F, OVR_DISTANCE_F, MIN_POWER + dAngle / 2, maxSpeed * MAX_SPEED);
       if (targetSpeed < curSpeed) {           // over speed
         curDriveDir   = BRAKE;
-        requestTorque = 255;
+        requestTorque = MAX_TORQUE;
       }
       RC_drive(curDriveDir, requestTorque);
     } 
-  }
-  //=========================================================
-  //  detect kirikaeshi
-  //=========================================================
-  if (curDriveDir == REVERSE && curSpeed < 0) { // kirikeshi
-    reverseFlag = 1;
-  } else {
-    reverseFlag = 0;
   }
   //=========================================================
   //  calc forward time
@@ -254,7 +273,7 @@ void auto_steering()
   //=========================================================
   //  kerikaeshi
   //=========================================================
-  if (reverseMode == 1 && reverseFlag == 1) {
+  if (reverseMode == 1) {
     if (steerDir == RIGHT) {
       steerDir = LEFT;                  // counter steer
     } else if (steerDir == LEFT) {
