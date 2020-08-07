@@ -1,5 +1,5 @@
 //=========================================================
-//  rumicar_atom_EX_V3.ino :  RumiCar application 
+//  rumicar_atom_EX_V3.ino :  RumiCar application
 //  History     : V3.0  2020-07-17 Brake Test
 //                V4.0  2020-08-03 Brake support
 //                V4.1  2020-08-06 Debug kirikaeshi
@@ -19,7 +19,7 @@ BluetoothSerial SerialBT;
 //  RumiCar Default Parameter
 //=========================================================
 #define DEVICE_NAME     "RumiCar_ESP32" // BLE Device Name
-#define PILOT_MODE      1         // 1:Auto 2:Manual 
+#define PILOT_MODE      1         // 1:Auto 2:Manual
 #define MAX_TORQUE      255       // max pwm value
 #define MAX_POWER       230       // 230 max
 #define MIN_POWER       120       // 120 min
@@ -32,7 +32,7 @@ BluetoothSerial SerialBT;
 #define MIN_DISTANCE_W  50        // min distance to wall
 #define MAX_ANGLE       100       // max 100%
 #define LIMIT_ANGLE      30       // max  30%
-#define OVR_DISTANCE_F  800       // 800mm  detect straight 
+#define OVR_DISTANCE_F  800       // 800mm  detect straight
 #define MAX_DISTANCE_F  300       // 300mm  detect front wall
 #define MID_DISTANCE_F  200       // 200mm  speed down distance
 #define MIN_DISTANCE_F  100       // 100mm  reverse start distance
@@ -42,9 +42,9 @@ BluetoothSerial SerialBT;
 #define OIO_OFFSET      50        // out in out offset 0=off
 #define OIO_TIME        500       // continue 500ms to inside
 #define MAX_STOP_TIME   4         // stop time(for reverse mode)
-#define Kp              0.8       // Konstante p
-#define Kd              0.1       // Konstante d
-#define DMODE           0         // Differential control mode
+#define KP_CONST        0.8       // Konstante p
+#define KD_CONST        0.1       // Konstante d
+#define DMODE           1         // Differential control mode
                                   // 1: normalize 0:active
 #ifdef  SENSOR_VL53L1X            // use VL53L1X
 VL53L1X sensor0;                  // create right sensor instanse
@@ -71,11 +71,11 @@ static float p;                          // proportional control
 static float d  = 0;                     // differential control
 static float d1 = 0;
 static float d2 = 0;
-static float kp = Kp;
-static float kd = Kd;                
+static float kp = KP_CONST;
+static float kd = KD_CONST;
 static unsigned long preTime = 0;
 static unsigned long dTime = 0;
-static int dMode = DMODE;                // difference control mode 
+static int dMode = DMODE;                // difference control mode
 static int16_t Joy_X = 0;                // JoyStick X
 static int16_t Joy_Y = 0;                // JoyStick Y
 static int16_t autoPilot = PILOT_MODE;   // Default Pilot Mode
@@ -108,7 +108,7 @@ void setup()
   Serial.println("Start bluetooth!");
   SerialBT.begin(DEVICE_NAME);
   Serial.println("The device started, now you can pair it with bluetooth!");
-#endif  
+#endif
 }
 
 //=========================================================
@@ -132,13 +132,13 @@ void auto_driving()
     if (stopCounter > MAX_STOP_TIME && reverseMode == 0) {
       reverseMode = 1;
       stopCounter = 0;
-    } 
+    }
   } else {
     stopCounter = 0;
   }
   //=========================================================
   //  set reverse distance (expand 100ms)
-  //=========================================================  
+  //=========================================================
   if (reverseMode == 1) {
     minDistance = MIN_DISTANCE_F + REVERSE_DISTANCE;
   } else {
@@ -171,7 +171,7 @@ void auto_driving()
         requestTorque = MAX_TORQUE;
       }
       RC_drive(curDriveDir, requestTorque);
-    } 
+    }
   }
   //=========================================================
   //  calc forward time
@@ -196,7 +196,7 @@ void auto_driving()
 void auto_steering()
 {
   int steerMax;                     // limit steering angle
-  int dMin = MIN_DISTANCE_W;        // min distance to wall     
+  int dMin = MIN_DISTANCE_W;        // min distance to wall
   int dMax = MAX_DISTANCE_W;        // max distance to wall
   int pos;                          // position between wall to wall
   int oioOffset;                    // out in out offset
@@ -206,7 +206,7 @@ void auto_steering()
   //=========================================================
   //  detect straight
   //=========================================================
-  if (s1 > OVR_DISTANCE_F &&  // detect straight 
+  if (s1 > OVR_DISTANCE_F &&  // detect straight
       s0 > MID_DISTANCE_W &&  // not near left wall
       s2 > MID_DISTANCE_W) {  // not near write wall
     steerMax = LIMIT_ANGLE ;  // limit steering
@@ -216,7 +216,7 @@ void auto_steering()
   //=========================================================
   //  Limit wall distance
   //=========================================================
-  if      (s0 > dMax) s0 = dMax;    // correct Max Value 
+  if      (s0 > dMax) s0 = dMax;    // correct Max Value
   else if (s0 < dMin) s0 = dMin;    // correct Min Value
   if      (s2 > dMax) s2 = dMax;    // correct Max Value
   else if (s2 < dMin) s2 = dMin;    // correct Min Value
@@ -228,36 +228,49 @@ void auto_steering()
       oioOffset = OIO_OFFSET * dMode;     // keep near left wall
     } else if (courseLayout == RIGHT) {
       oioOffset = - OIO_OFFSET * dMode;   // keep near right wall
-    }
-    if (s1 > OVR_DISTANCE_F) {      // strate : keep near outside wall
-      oioOffset = - oioOffset;
     } else {
       oioOffset = 0;
     }
+    if (s1 > OVR_DISTANCE_F) {      // strate : keep near outside wall
+      oioOffset = - oioOffset;
+    } 
   } else {
     oioOffset = 0;
   }
   targetPos = constrain((s0 + s2) / 2 + oioOffset, MIN_DISTANCE_W, s0 + s2 - MIN_DISTANCE_W);
+  ///*
+  Serial.print("\tSensor0:");
+  Serial.print(s0);
+  Serial.print("\tSensor1:");
+  Serial.print(s1);
+  Serial.print("\tSensor2:");
+  Serial.print(s2);
+  Serial.print("\tcourseLayout:");
+  Serial.print(courseLayout);
+  Serial.print("\tTargetPos:");
+  Serial.print(targetPos);
+  Serial.println();
+//*/
   //=========================================================
   //  calc steering angle
   //=========================================================
   curPos = s2;                      // standard wall is Right
   p = (targetPos - curPos) * kp;    // P control
   d = (p - prep) * 1000 / dTime * kd;  // calc differential
-//  if (dMode == 1) {     
+//  if (dMode == 1) {
 //    d = (d + d1 + d2) / 3;
 //    d2 = d1;
-//    d1 = d;   
+//    d1 = d;
 //  }
   dAngle = constrain(p + d , -steerMax, steerMax);  // normalize dAngle -100 to 100
   prep = p;
 
   if (dAngle > 0) {
     steerDir = LEFT;
-    dAngle = abs(dAngle);  
+    dAngle = abs(dAngle);
   } else if (dAngle < 0) {
     steerDir = RIGHT;
-    dAngle = abs(dAngle);      
+    dAngle = abs(dAngle);
   } else {
     steerDir = CENTER;
     dAngle = 0;
@@ -328,7 +341,7 @@ void auto_pilot()
   //  Logging
   //=========================================================
 #ifdef BT_ON
-  sprintf(buf, "\t%8d\t%4d\t%4d\t%4d\t%5.2f\t%5.2f\t%1d\t%3d\t%5.3f\t%5.3f\t%3d\t%3d\t%1d\t%1d\t%1d", 
+  sprintf(buf, "\t%8d\t%4d\t%4d\t%4d\t%5.2f\t%5.2f\t%1d\t%3d\t%5.3f\t%5.3f\t%3d\t%3d\t%1d\t%1d\t%1d",
                 t, s0, s1, s2, p, d, steerDir, dAngle, kp, kd, requestTorque, curSpeed, curDriveDir, courseLayout, dMode);
   SerialBT.println(buf);
 #endif
@@ -344,23 +357,23 @@ void manual_pilot()
   int angle;          // steering angle
   int K_OFF = 50;     // min power offset
                       // driving
-  if (Joy_Y > 10) {   
+  if (Joy_Y > 10) {
     sDrive = constrain( Joy_Y + K_OFF, 0, maxSpeed);
     RC_drive(FORWARD, sDrive);
   } else if (Joy_Y < -10) {
     sDrive = constrain(-Joy_Y + K_OFF, 0, maxSpeed);
-    RC_drive(REVERSE, sDrive);    
+    RC_drive(REVERSE, sDrive);
   } else {
-    RC_drive(BRAKE, 0); 
+    RC_drive(BRAKE, 0);
   }
                       // steering
   angle = constrain(Joy_X + Trim, -100, 100);
   if (angle > 0) {
     RC_steer(RIGHT, angle);
   } else if (angle < 0) {
-    RC_steer(LEFT, -angle);    
+    RC_steer(LEFT, -angle);
   } else {
-    RC_steer(CENTER); 
+    RC_steer(CENTER);
   }
 }
 
@@ -371,7 +384,7 @@ void loop()
 {
   M5.update();
   //=========================================================
-  //  get VL53L0X TOF sensor value 
+  //  get VL53L0X TOF sensor value
   //    S0: left S1: center S2: right
   //=========================================================
 #ifdef SENSOR_VL53L1X
@@ -389,7 +402,7 @@ void loop()
   Serial.print("\tSensor1:");
   Serial.print(s1);
   Serial.print("\tSensor2:");
-  Serial.println(s2);  
+  Serial.println(s2);
 */
 
 #else
