@@ -231,11 +231,13 @@ void auto_steering()
     }
     if (s1 > OVR_DISTANCE_F) {      // strate : keep near outside wall
       oioOffset = - oioOffset;
+    } else {
+      oioOffset = 0;
     }
   } else {
     oioOffset = 0;
   }
-  targetPos = constrain((s0 + s2) / 2 + oioOffset, MID_DISTANCE_W / 2, s0 + s2 - MID_DISTANCE_W / 2);
+  targetPos = constrain((s0 + s2) / 2 + oioOffset, MIN_DISTANCE_W, s0 + s2 - MIN_DISTANCE_W);
   //=========================================================
   //  calc steering angle
   //=========================================================
