@@ -3,6 +3,7 @@
 //  History     : V3.0  2020-07-17 Brake Test
 //                V4.0  2020-08-03 Brake support
 //                V4.1  2020-08-06 Debug kirikaeshi
+//                V4.2  2020-08-07 Degug oio Mode
 //=========================================================
 #include "M5Atom.h"               // CPU: M5 Atom Matrix
 #include <Wire.h>
@@ -89,7 +90,6 @@ static int preSpeed       = 0;           // previous speed
 static int targetSpeed    = 0;           // target speed
 static int requestTorque  = 0;           // PWM Value
 static int curSpeed       = 0;           // current speed
-static int preS1          = 0;           // pre s1
 static int reverseMode    = 0;           // reversing
 static int stopCounter    = 0;           // stop times
 static int steerDir;                     // steering direction
@@ -188,7 +188,6 @@ void auto_driving()
   }
   preDistance  = s1;
   preSpeed     = curSpeed;
-  preS1        = s1;
 }
 
 //=========================================================
@@ -200,7 +199,7 @@ void auto_steering()
   int dMin = MIN_DISTANCE_W;        // min distance to wall     
   int dMax = MAX_DISTANCE_W;        // max distance to wall
   int pos;                          // position between wall to wall
-  int oioOffset = OIO_OFFSET;       // out in out offset
+  int oioOffset;                    // out in out offset
   int targetPos;                    // target position
   int curPos;                       // current position
 
@@ -222,34 +221,25 @@ void auto_steering()
   if      (s2 > dMax) s2 = dMax;    // correct Max Value
   else if (s2 < dMin) s2 = dMin;    // correct Min Value
   //=========================================================
-  //  detect out in out mode
+  //  detect out in out mode & calc targetPos
   //=========================================================
-/*
-  if (eCornerTime > OIO_TIME)  oioOffset = OIO_OFFSET;
-  else                         oioOffset = 0;
-  pos = s0 - s2;                    // detect direction of travel 
-  if (pos < 0)  {                   // turn to left
-    s2 += oioOffset;                // turn to near left wall
-    dMax = s2;
-  } else {                          // turn to right
-    s0 += oioOffset;                // turn to near right wall
-    dMax = s0;
-  }
-*/
-  oioOffset = 0;
-  if (dMode > 0) {
-    oioOffset = OIO_OFFSET;
-    if (courseLayout == 0) {
-      s0 += (oioOffset * dMode);
-    } else if (courseLayout == 2) {
-      s2 += (oioOffset * dMode);      
+  if (dMode > 0) {                  // oio mode on
+    if (courseLayout == LEFT) {
+      oioOffset = OIO_OFFSET * dMode;     // keep near left wall
+    } else if (courseLayout == RIGHT) {
+      oioOffset = - OIO_OFFSET * dMode;   // keep near right wall
     }
+    if (s1 > OVR_DISTANCE_F) {      // strate : keep near outside wall
+      oioOffset = - oioOffset;
+    }
+  } else {
+    oioOffset = 0;
   }
+  targetPos = constrain((s0 + s2) / 2 + oioOffset, MID_DISTANCE_W / 2, s0 + s2 - MID_DISTANCE_W / 2);
   //=========================================================
   //  calc steering angle
   //=========================================================
-  targetPos = (s0 + s2) / 2;        // proportional 
-  curPos = s2;                      // standard wall is LEFT
+  curPos = s2;                      // standard wall is Right
   p = (targetPos - curPos) * kp;    // P control
   d = (p - prep) * 1000 / dTime * kd;  // calc differential
 //  if (dMode == 1) {     
@@ -304,14 +294,13 @@ void auto_steering()
   //  detect course layout
   //=========================================================
   steerCount[steerDir]++;
-  if (steerCount[LEFT] > 100 || steerCount[RIGHT] > 100) {
-    if (steerCount[LEFT] > steerCount[RIGHT]) {
+  if (steerCount[LEFT] > 500 || steerCount[RIGHT] > 500) {
+    if (steerCount[LEFT] > (steerCount[RIGHT] * 2)) { //grater than 2 times
       courseLayout = LEFT;
-    } else {
+    } else if ((steerCount[LEFT] * 2) < steerCount[RIGHT] )
       courseLayout = RIGHT;
-    }
-  } else {
-    courseLayout = CENTER;                    // unknown
+    } else {
+      courseLayout = CENTER;                    // unknown
   }
   //=========================================================
   //  save old direction
@@ -387,17 +376,20 @@ void loop()
   s0 = sensor0.read();        // read left  sensor
   s1 = sensor1.read();        // read front sensor
   s2 = sensor2.read();        // read right sensor
-///*
+  // detect overrange error and collect
+  if (sensor0.ranging_data.range_status != 0) s0 = OVR_DISTANCE_F;
+  if (sensor1.ranging_data.range_status != 0) s1 = OVR_DISTANCE_F;
+  if (sensor2.ranging_data.range_status != 0) s2 = OVR_DISTANCE_F;
+
+/*
   Serial.print("\tSensor0:");
   Serial.print(s0);
   Serial.print("\tSensor1:");
   Serial.print(s1);
   Serial.print("\tSensor2:");
   Serial.println(s2);  
-  if (s1 <= 0) s1 = 1; // over 2000mm return 0
-  if (s0 <= 0) s0 = OVR_DISTANCE_F; // over 2000mm return 0
-  if (s2 <= 0) s2 = OVR_DISTANCE_F; // over 2000mm return 0
-//*/
+*/
+
 #else
   //s0=sensor0.readRangeContinuousMillimeters();
   //s1=sensor1.readRangeContinuousMillimeters();
