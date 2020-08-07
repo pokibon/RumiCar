@@ -326,7 +326,7 @@ void auto_pilot()
   //  Logging
   //=========================================================
 #ifdef BT_ON
-  sprintf(buf, "\t%8d\t%4d\t%4d\t%4d\t%5.2f\t%5.2f\t%1d\t%3d\t%4.2f\t%4.2f\t%3d\t%3d\t%1d\t%1d\t%1d", 
+  sprintf(buf, "\t%8d\t%4d\t%4d\t%4d\t%5.2f\t%5.2f\t%1d\t%3d\t%5.3f\t%5.3f\t%3d\t%3d\t%1d\t%1d\t%1d", 
                 t, s0, s1, s2, p, d, steerDir, dAngle, kp, kd, requestTorque, curSpeed, curDriveDir, courseLayout, dMode);
   SerialBT.println(buf);
 #endif
@@ -425,14 +425,14 @@ void loop()
       maxSpeed -= 10;
       if (maxSpeed <= 100) maxSpeed = 100;
     } else if (action == 'P') {
-      kp += 0.05;
+      kp += 0.025;
     } else if (action == 'p') {
-      kp -= 0.05;
+      kp -= 0.025;
       if (kp <= 0) kp = 0;
     } else if (action == 'D') {
-      kd += 0.05;
+      kd += 0.025;
     } else if (action == 'd') {
-      kd -= 0.05;
+      kd -= 0.025;
       if (kd <= 0) kd = 0;
     }
   }
