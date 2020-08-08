@@ -4,6 +4,7 @@
 //                V4.0  2020-08-03 Brake support
 //                V4.1  2020-08-06 Debug kirikaeshi
 //                V4.2  2020-08-07 Degug oio Mode
+//                V4.3  2020-08=08 Debug VL53L1X fault
 //=========================================================
 #include "M5Atom.h"               // CPU: M5 Atom Matrix
 #include <Wire.h>
@@ -44,7 +45,7 @@ BluetoothSerial SerialBT;
 #define MAX_STOP_TIME   4         // stop time(for reverse mode)
 #define KP_CONST        0.8       // Konstante p
 #define KD_CONST        0.1       // Konstante d
-#define DMODE           1         // Differential control mode
+#define DMODE           0         // Differential control mode
                                   // 1: normalize 0:active
 #ifdef  SENSOR_VL53L1X            // use VL53L1X
 VL53L1X sensor0;                  // create right sensor instanse
@@ -59,7 +60,9 @@ VL53L0X sensor2;                  // create left  sensor instance
 //=========================================================
 //  auto pilot variables difinition
 //=========================================================
-static int s0, s1, s2;                   // left, center, right censor value
+static int s0, s1, s2;                   // left, center, right sensor value
+static int ps0 = 0, ps1 = 0, ps2 = 0;    // left, center, right pre sensor value
+static int st0, st1, st2;                // left, center, right sensor status
 static int curDriveDir = BRAKE;          // current direction
 static int lastDriveDir = BRAKE;         // last drive direction
 static int lastSteerDir = CENTER;        // last steer direction
@@ -155,13 +158,11 @@ void auto_driving()
       curDriveDir = REVERSE;
       requestTorque = map(s1, STP_DISTANCE_F, MIN_DISTANCE_F, MIN_POWER + dAngle / 2, maxSpeed * MID_SPEED);
     }
-    RC_drive(curDriveDir, requestTorque);
   } else {
     reverseMode = 0;
     if (s1 > OVR_DISTANCE_F) {                // 800 < x
       curDriveDir = FORWARD;
       requestTorque = maxSpeed * MAX_SPEED;   // full throttle
-      RC_drive(curDriveDir, requestTorque);
     } else {                                  // 100 < x < 800
       curDriveDir = FORWARD;
       targetSpeed   = map(s1, MIN_DISTANCE_F, OVR_DISTANCE_F, 0, maxSpeed * MAX_SPEED);
@@ -170,9 +171,9 @@ void auto_driving()
         curDriveDir   = BRAKE;
         requestTorque = MAX_TORQUE;
       }
-      RC_drive(curDriveDir, requestTorque);
     }
   }
+  RC_drive(curDriveDir, requestTorque);
   //=========================================================
   //  calc forward time
   //=========================================================
@@ -231,9 +232,9 @@ void auto_steering()
     } else {
       oioOffset = 0;
     }
-    if (s1 > OVR_DISTANCE_F) {      // strate : keep near outside wall
-      oioOffset = - oioOffset;
-    } 
+//    if (s1 > OVR_DISTANCE_F) {      // strate : keep near outside wall
+//      oioOffset = - oioOffset;
+//    } 
   } else {
     oioOffset = 0;
   }
@@ -341,8 +342,10 @@ void auto_pilot()
   //  Logging
   //=========================================================
 #ifdef BT_ON
-  sprintf(buf, "\t%8d\t%4d\t%4d\t%4d\t%5.2f\t%5.2f\t%1d\t%3d\t%5.3f\t%5.3f\t%3d\t%3d\t%1d\t%1d\t%1d",
-                t, s0, s1, s2, p, d, steerDir, dAngle, kp, kd, requestTorque, curSpeed, curDriveDir, courseLayout, dMode);
+  sprintf(buf, "\t%8d\t%4d\t%4d\t%4d\t%4d\t%4d\t%4d\t%5.2f\t%5.2f\t%1d\t%3d\t%5.3f\t%5.3f\t%3d\t%3d\t%1d\t%1d\t%1d",
+                t, s0, st0, s1, st1, s2, st2, p, d, steerDir, dAngle, kp, kd, requestTorque, curSpeed, curDriveDir, courseLayout, dMode);
+//  sprintf(buf, "\t%8d\t%4d\t%4d\t%4d\t%5.2f\t%5.2f\t%1d\t%3d\t%5.3f\t%5.3f\t%3d\t%3d\t%1d\t%1d\t%1d",
+//                t, s0, s1, s2, p, d, steerDir, dAngle, kp, kd, requestTorque, curSpeed, curDriveDir, courseLayout, dMode);
   SerialBT.println(buf);
 #endif
 //  SerialBT.println(buf);
@@ -392,9 +395,17 @@ void loop()
   s1 = sensor1.read();        // read front sensor
   s2 = sensor2.read();        // read right sensor
   // detect overrange error and collect
-  if (sensor0.ranging_data.range_status != 0) s0 = OVR_DISTANCE_F;
-  if (sensor1.ranging_data.range_status != 0) s1 = OVR_DISTANCE_F;
-  if (sensor2.ranging_data.range_status != 0) s2 = OVR_DISTANCE_F;
+
+  st0 = sensor0.ranging_data.range_status;
+  st1 = sensor1.ranging_data.range_status;
+  st2 = sensor2.ranging_data.range_status;
+
+   if (st0 == 0)  ps0 = s0; // if range error occred set previus value
+   else           s0 = ps0;
+   if (st1 == 0)  ps1= s1;
+   else           s1 = ps1;
+   if (st2 == 0)  ps2 = s2;
+   else           s2 = ps2;  
 
 /*
   Serial.print("\tSensor0:");
@@ -422,7 +433,8 @@ void loop()
       if (autoPilot == 0) {
         autoPilot = 1;
 #ifdef BT_ON
-        SerialBT.println("\tTime\tS0\tS1\tS2\tD\tP\tDIR\tAngle\tKp\tKd\trequestSpeed\tcurSpeed\tcurDriveDIr\tLayout\tdMode");
+        SerialBT.println("\tTime\tS0\tst0\tS1\tst1\tS2\tst2\tD\tP\tDIR\tAngle\tKp\tKd\trequestSpeed\tcurSpeed\tcurDriveDIr\tLayout\tdMode");
+//        SerialBT.println("\tTime\tS0\tS1\tS2\tD\tP\tDIR\tAngle\tKp\tKd\trequestSpeed\tcurSpeed\tcurDriveDIr\tLayout\tdMode");
 #endif
       } else {
         autoPilot = 0;
