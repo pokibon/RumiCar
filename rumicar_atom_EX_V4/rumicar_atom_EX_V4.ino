@@ -45,7 +45,7 @@ BluetoothSerial SerialBT;
 #define MAX_STOP_TIME   4         // stop time(for reverse mode)
 #define KP_CONST        0.8       // Konstante p
 #define KD_CONST        0.1       // Konstante d
-#define DMODE           0         // Differential control mode
+#define DMODE           1         // Differential control mode
                                   // 1: normalize 0:active
 #ifdef  SENSOR_VL53L1X            // use VL53L1X
 VL53L1X sensor0;                  // create right sensor instanse
@@ -97,6 +97,8 @@ static int reverseMode    = 0;           // reversing
 static int stopCounter    = 0;           // stop times
 static int steerDir;                     // steering direction
 static int dAngle;                       // steering angle
+static int oioCount       = 0;           // oio count
+static int cornerFlag     = 0;           // oio mode flag
 //=========================================================
 //  Arduino setup function
 //=========================================================
@@ -202,6 +204,7 @@ void auto_steering()
   int pos;                          // position between wall to wall
   int oioOffset;                    // out in out offset
   int targetPos;                    // target position
+  int targetPos2;                   // oio target
   int curPos;                       // current position
 
   //=========================================================
@@ -232,24 +235,46 @@ void auto_steering()
     } else {
       oioOffset = 0;
     }
-//    if (s1 > OVR_DISTANCE_F) {      // strate : keep near outside wall
-//      oioOffset = - oioOffset;
-//    } 
+    if (cornerFlag == 1 && s1 > OVR_DISTANCE_F) {      // straight : keep near outside wall
+      oioOffset = - oioOffset;
+      cornerFlag = 0;
+      oioCount = 0;
+    } else if (cornerFlag == 0 && s1 <= OVR_DISTANCE_F) {
+      cornerFlag = 1;
+      oioCount = 0;
+    }
+    oioCount ++;
   } else {
     oioOffset = 0;
   }
-  targetPos = constrain((s0 + s2) / 2 + oioOffset, MIN_DISTANCE_W, s0 + s2 - MIN_DISTANCE_W);
-  ///*
+  targetPos = (s0 + s2) / 2;
+  targetPos2 = constrain((s0 + s2) / 2 + oioOffset, MIN_DISTANCE_W, s0 + s2 - MIN_DISTANCE_W);
+  if (targetPos - targetPos2 > 10) {
+    targetPos = constrain(targetPos - oioCount, targetPos2, targetPos);
+  } else if (targetPos - targetPos2 < 10) {
+    targetPos = constrain(targetPos + oioCount, targetPos, targetPos2) ;
+  }
+///*
   Serial.print("\tSensor0:");
   Serial.print(s0);
+  Serial.print("\tStatus:");
+  Serial.print(st0);
   Serial.print("\tSensor1:");
   Serial.print(s1);
+  Serial.print("\tStatus:");
+  Serial.print(st1);
   Serial.print("\tSensor2:");
   Serial.print(s2);
+  Serial.print("\tStatus:");
+  Serial.print(st2);
   Serial.print("\tcourseLayout:");
   Serial.print(courseLayout);
   Serial.print("\tTargetPos:");
   Serial.print(targetPos);
+  Serial.print("\tTargetPos2:");
+  Serial.print(targetPos2);
+  Serial.print("\toioCount:");
+  Serial.print(oioCount);
   Serial.println();
 //*/
   //=========================================================
@@ -400,11 +425,11 @@ void loop()
   st1 = sensor1.ranging_data.range_status;
   st2 = sensor2.ranging_data.range_status;
 
-   if (st0 == 0)  ps0 = s0; // if range error occred set previus value
+   if (st0 == 0 || st0 == 2)  ps0 = s0; // if range error occred set previus value
    else           s0 = ps0;
-   if (st1 == 0)  ps1= s1;
+   if (st1 == 0 || st1 == 2)  ps1 = s1;
    else           s1 = ps1;
-   if (st2 == 0)  ps2 = s2;
+   if (st2 == 0 || st2 == 2)  ps2 = s2;
    else           s2 = ps2;  
 
 /*
