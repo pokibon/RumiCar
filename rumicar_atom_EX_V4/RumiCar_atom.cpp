@@ -2,6 +2,7 @@
 //  RumiCar.cpp :  RumiCar Library for M5.Atom 
 //  History     : V0.0  2020-05-29 New Create(K.Ohe)
 //                V0.1  2020-06-07 Timer task
+//              : V1.0  2020-08-09 change VL53L1X Range
 //=========================================================
 #include "M5Atom.h"
 #include <ESP32Servo.h>
@@ -129,12 +130,12 @@ void RC_setup()
 //  sensor0.setDistanceMode(VL53L1X::Medium);
 //  sensor1.setDistanceMode(VL53L1X::Medium);
 //  sensor2.setDistanceMode(VL53L1X::Medium);
-  sensor0.setDistanceMode(VL53L1X::Short);
-  sensor1.setDistanceMode(VL53L1X::Short);
-  sensor2.setDistanceMode(VL53L1X::Short);  
-  sensor0.setMeasurementTimingBudget(20000);
-  sensor1.setMeasurementTimingBudget(20000);
-  sensor2.setMeasurementTimingBudget(20000);
+  sensor0.setDistanceMode(VL53L1X_RANGE);
+  sensor1.setDistanceMode(VL53L1X_RANGE);
+  sensor2.setDistanceMode(VL53L1X_RANGE);  
+  sensor0.setMeasurementTimingBudget(VL53L1X_TB);
+  sensor1.setMeasurementTimingBudget(VL53L1X_TB);
+  sensor2.setMeasurementTimingBudget(VL53L1X_TB);
   sensor0.startContinuous(5);
   sensor1.startContinuous(5);
   sensor2.startContinuous(5);

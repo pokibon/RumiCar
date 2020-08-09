@@ -1,12 +1,14 @@
 //=========================================================
 //  RumiCar.h :  RumiCar Library Header for M5.Atom 
 //  History    : V0.0  2020-05-29 New Create(K.Ohe)
+//             : V1.0  2020-08-09 change VL53L1X Range
 //=========================================================
 #define RUMICAR_H
 #define SENSOR_VL53L1X
 #define ATOM_MATRIX
 //#define ALGYAN_ESP32
-
+#define VL53L1X_RANGE   VL53L1X::Long       // Short Long Medium
+#define VL53L1X_TB      33000               // Short :20000
 #ifdef SENSOR_VL53L1X
 #include <VL53L1X.h>
 #else

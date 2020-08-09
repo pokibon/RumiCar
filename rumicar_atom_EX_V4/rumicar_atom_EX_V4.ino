@@ -5,6 +5,7 @@
 //                V4.1  2020-08-06 Debug kirikaeshi
 //                V4.2  2020-08-07 Degug oio Mode
 //                V4.3  2020-08-08 Debug VL53L1X fault
+//                V1.0  2020-08-09 change VL53L1X Range
 //=========================================================
 #include "M5Atom.h"               // CPU: M5 Atom Matrix
 #include <Wire.h>
@@ -45,7 +46,7 @@ BluetoothSerial SerialBT;
 #define MAX_STOP_TIME   4         // stop time(for reverse mode)
 #define KP_CONST        0.8       // Konstante p
 #define KD_CONST        0.1       // Konstante d
-#define DMODE           1         // Differential control mode
+#define DMODE           0         // Differential control mode
                                   // 1: normalize 0:active
 #ifdef  SENSOR_VL53L1X            // use VL53L1X
 VL53L1X sensor0;                  // create right sensor instanse
@@ -251,21 +252,21 @@ void auto_steering()
   targetPos = (s0 + s2) / 2;
   targetPos2 = constrain((s0 + s2) / 2 + oioOffset, MIN_DISTANCE_W, s0 + s2 - MIN_DISTANCE_W);
   if (targetPos - targetPos2 > 10) {
-    targetPos = constrain(targetPos - oioCount, targetPos2, targetPos);
+    targetPos = constrain(targetPos - oioCount * 2, targetPos2, targetPos);
   } else if (targetPos - targetPos2 < 10) {
-    targetPos = constrain(targetPos + oioCount, targetPos, targetPos2) ;
+    targetPos = constrain(targetPos + oioCount * 2, targetPos, targetPos2) ;
   }
-///*
+/*
   Serial.print("\tSensor0:");
-  Serial.print(s0);
+  Serial.print(rawS0);
   Serial.print("\tStatus:");
   Serial.print(st0);
   Serial.print("\tSensor1:");
-  Serial.print(s1);
+  Serial.print(rawS1);
   Serial.print("\tStatus:");
   Serial.print(st1);
   Serial.print("\tSensor2:");
-  Serial.print(s2);
+  Serial.print(rawS2);
   Serial.print("\tStatus:");
   Serial.print(st2);
   Serial.print("\tcourseLayout:");
@@ -277,7 +278,7 @@ void auto_steering()
   Serial.print("\toioCount:");
   Serial.print(oioCount);
   Serial.println();
-//*/
+*/
   //=========================================================
   //  calc steering angle
   //=========================================================
@@ -426,21 +427,12 @@ void loop()
   st1 = sensor1.ranging_data.range_status;
   st2 = sensor2.ranging_data.range_status;
 
-   if (st0 == 0 || st0 == 2)  ps0 = s0 = rawS0;                  // if range error occred set previus value
+   if (st0 != 4)  ps0 = s0 = rawS0;                  // if range error occred set previus value
    else           s0 = ps0;
-   if (st1 == 0 || st1 == 2)  ps1 = s1 = rawS1;
+   if (st1 != 4)  ps1 = s1 = rawS1;
    else           s1 = ps1;
-   if (st2 == 0 || st2 == 2)  ps2 = s2 = rawS2;
+   if (st2 != 4)  ps2 = s2 = rawS2;
    else           s2 = ps2;  
-
-/*
-  Serial.print("\tSensor0:");
-  Serial.print(s0);
-  Serial.print("\tSensor1:");
-  Serial.print(s1);
-  Serial.print("\tSensor2:");
-  Serial.println(s2);
-*/
 
 #else
   //s0=sensor0.readRangeContinuousMillimeters();
