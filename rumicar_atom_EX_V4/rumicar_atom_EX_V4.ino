@@ -4,7 +4,7 @@
 //                V4.0  2020-08-03 Brake support
 //                V4.1  2020-08-06 Debug kirikaeshi
 //                V4.2  2020-08-07 Degug oio Mode
-//                V4.3  2020-08=08 Debug VL53L1X fault
+//                V4.3  2020-08-08 Debug VL53L1X fault
 //=========================================================
 #include "M5Atom.h"               // CPU: M5 Atom Matrix
 #include <Wire.h>
