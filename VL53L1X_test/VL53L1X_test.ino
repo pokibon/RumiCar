@@ -38,9 +38,7 @@ void setup()
   }
   delay(100);
   sensor0.setAddress((uint8_t)20); // 20
-  sensor0.setTimeout(500);      // 500   
-  sensor0.setDistanceMode(VL53L1X::Short);
-  sensor0.setMeasurementTimingBudget(20000);    
+  sensor0.setTimeout(500);      // 500       
   //seonsor1
   pinMode(SHUT1, INPUT);
   delay(150);
@@ -52,8 +50,6 @@ void setup()
   delay(100);
   sensor1.setAddress((uint8_t)21);
   sensor1.setTimeout(500);
-  sensor1.setDistanceMode(VL53L1X::Short);
-  sensor1.setMeasurementTimingBudget(20000);
   //seonsor2
   pinMode(SHUT2, INPUT);
   delay(150);
@@ -65,17 +61,24 @@ void setup()
   delay(100);
   sensor2.setAddress((uint8_t)22);
   sensor2.setTimeout(500);
-  sensor2.setDistanceMode(VL53L1X::Short);
-  sensor2.setMeasurementTimingBudget(20000); 
+ 
+  sensor0.setDistanceMode(VL53L1X::Long);  // Short Medium Long
+  sensor1.setDistanceMode(VL53L1X::Long);
+  sensor2.setDistanceMode(VL53L1X::Long);
+
+  sensor0.setMeasurementTimingBudget(33000);
+  sensor1.setMeasurementTimingBudget(33000);
+  sensor2.setMeasurementTimingBudget(33000);
+
 //  sensor0.VL53L1X_SetROI(8 , 8, 28);        // default 60
 //  sensor1.VL53L1X_SetROI(8 , 8, 60);        // def 60
 //  sensor2.VL53L1X_SetROI(8 , 8, 92);        // def 60
   sensor0.VL53L1X_SetROI(16 , 8, 60);        // default 60
   sensor1.VL53L1X_SetROI(16 , 8, 60);        // def 60
   sensor2.VL53L1X_SetROI(16 , 8, 60);        // def 60
-  sensor0.startContinuous(5);
-  sensor1.startContinuous(5);
-  sensor2.startContinuous(5);
+  sensor0.startContinuous(10);
+  sensor1.startContinuous(10);
+  sensor2.startContinuous(10);
 }
 
 void loop()
@@ -84,15 +87,19 @@ void loop()
   Serial.print(sensor0.read());
   Serial.print("\tstatus : ");
   Serial.print(sensor0.ranging_data.range_status);
+  Serial.print(" : ");
+  Serial.print(VL53L1X::rangeStatusToString(sensor0.ranging_data.range_status));
   Serial.print("\tSensor1 : ");
   Serial.print(sensor1.read());
   Serial.print("\tstatus : ");
   Serial.print(sensor1.ranging_data.range_status);
+  Serial.print(" : ");
+  Serial.print(VL53L1X::rangeStatusToString(sensor1.ranging_data.range_status));
   Serial.print("\tSensor2 : ");
   Serial.print(sensor2.read());  
   Serial.print("\tstatus : ");
   Serial.print(sensor2.ranging_data.range_status);
-  Serial.print("\t : ");
-  Serial.print(VL53L1X::rangeStatusToString(sensor1.ranging_data.range_status));
+  Serial.print(" : ");
+  Serial.print(VL53L1X::rangeStatusToString(sensor2.ranging_data.range_status));
   Serial.println();
 }

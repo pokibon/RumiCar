@@ -61,6 +61,7 @@ VL53L0X sensor2;                  // create left  sensor instance
 //  auto pilot variables difinition
 //=========================================================
 static int s0, s1, s2;                   // left, center, right sensor value
+static int rawS0, rawS1, rawS2;          // sensor row value
 static int ps0 = 0, ps1 = 0, ps2 = 0;    // left, center, right pre sensor value
 static int st0, st1, st2;                // left, center, right sensor status
 static int curDriveDir = BRAKE;          // current direction
@@ -368,9 +369,9 @@ void auto_pilot()
   //=========================================================
 #ifdef BT_ON
   sprintf(buf, "\t%8d\t%4d\t%4d\t%4d\t%4d\t%4d\t%4d\t%5.2f\t%5.2f\t%1d\t%3d\t%5.3f\t%5.3f\t%3d\t%3d\t%1d\t%1d\t%1d",
-                t, s0, st0, s1, st1, s2, st2, p, d, steerDir, dAngle, kp, kd, requestTorque, curSpeed, curDriveDir, courseLayout, dMode);
+                t, rawS0, st0, rawS1, st1, rawS2, st2, p, d, steerDir, dAngle, kp, kd, requestTorque, curSpeed, curDriveDir, courseLayout, dMode);
 //  sprintf(buf, "\t%8d\t%4d\t%4d\t%4d\t%5.2f\t%5.2f\t%1d\t%3d\t%5.3f\t%5.3f\t%3d\t%3d\t%1d\t%1d\t%1d",
-//                t, s0, s1, s2, p, d, steerDir, dAngle, kp, kd, requestTorque, curSpeed, curDriveDir, courseLayout, dMode);
+//                t, rawS0, rawS1, rawS2, p, d, steerDir, dAngle, kp, kd, requestTorque, curSpeed, curDriveDir, courseLayout, dMode);
   SerialBT.println(buf);
 #endif
 //  SerialBT.println(buf);
@@ -416,20 +417,20 @@ void loop()
   //    S0: left S1: center S2: right
   //=========================================================
 #ifdef SENSOR_VL53L1X
-  s0 = sensor0.read();        // read left  sensor
-  s1 = sensor1.read();        // read front sensor
-  s2 = sensor2.read();        // read right sensor
+  rawS0 = sensor0.read();        // read left  sensor
+  rawS1 = sensor1.read();        // read front sensor
+  rawS2 = sensor2.read();        // read right sensor
   // detect overrange error and collect
 
   st0 = sensor0.ranging_data.range_status;
   st1 = sensor1.ranging_data.range_status;
   st2 = sensor2.ranging_data.range_status;
 
-   if (st0 == 0 || st0 == 2)  ps0 = s0; // if range error occred set previus value
+   if (st0 == 0 || st0 == 2)  ps0 = s0 = rawS0;                  // if range error occred set previus value
    else           s0 = ps0;
-   if (st1 == 0 || st1 == 2)  ps1 = s1;
+   if (st1 == 0 || st1 == 2)  ps1 = s1 = rawS1;
    else           s1 = ps1;
-   if (st2 == 0 || st2 == 2)  ps2 = s2;
+   if (st2 == 0 || st2 == 2)  ps2 = s2 = rawS2;
    else           s2 = ps2;  
 
 /*
