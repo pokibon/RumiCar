@@ -5,7 +5,7 @@
 //                V4.1  2020-08-06 Debug kirikaeshi
 //                V4.2  2020-08-07 Degug oio Mode
 //                V4.3  2020-08-08 Debug VL53L1X fault
-//                V1.0  2020-08-09 change VL53L1X Range
+//                V1.0  2020-08-09 change VL53L1X Range 
 //=========================================================
 #include "M5Atom.h"               // CPU: M5 Atom Matrix
 #include <Wire.h>
